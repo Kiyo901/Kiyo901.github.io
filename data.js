@@ -1,182 +1,199 @@
 // === Kiyo日语 - 数据总控中心 (修复版) ===
 
-// 1. 获取精选单词 (来自 vocab.js)
-const finalVocab = (typeof coreVocab !== 'undefined') ? coreVocab : [];
+// 1. 读取基础知识库 (来自 basics.js)
+const basicData = (typeof kiyoBasics !== 'undefined') ? kiyoBasics : {};
 
-// 2. 获取标准单词 (来自 dict_vocab.js) --- ⚠️ 之前漏掉的就是这里 ⚠️
+// 2. 获取精选单词 (来自 vocab.js)
+// 为了防止污染原始数据，这里我们创建一个副本，而不是直接引用
+const finalVocab = (typeof coreVocab !== 'undefined') ? [...coreVocab] : [];
+
+// 3. 获取标准单词 (来自 dict_vocab.js)
 const bulkVocabList = (typeof bulkVocab !== 'undefined') ? bulkVocab : [];
 
-// 3. 强制合并：把标准单词塞到精选单词后面
-// 这样搜索时就能搜到所有词了
-finalVocab.push(...bulkVocabList);
+// 4. 强制合并：把标准单词塞到精选单词后面
+// 这样在 "词汇宝典" 中就能看到并搜索到所有词了
+if (bulkVocabList.length > 0) {
+    finalVocab.push(...bulkVocabList);
+}
 
-// 4. 导出数据给网站使用
+// 5. 获取标准语法 (来自 dict_grammar.js)
+const bulkGrammarList = (typeof bulkGrammar !== 'undefined') ? bulkGrammar : [];
+
+// 6. 定义核心语法 (N5-N1 完整版)
+const coreGrammar = [
+    // === N5 语法 ===
+    { "level": "N5", "main": "A は B です", "meaning": "A是B (判断/定义)", "example": "私は独身です。プロの独身です。", "exampleMean": "我是单身。我是职业单身狗。" },
+    { "level": "N5", "main": "A は B じゃありません", "meaning": "A不是B (否定)", "example": "これは料理じゃありません。毒です。", "exampleMean": "这不仅仅是料理。这是毒药。" },
+    { "level": "N5", "main": "S + か", "meaning": "表示疑问", "example": "あなたはバカですか。", "exampleMean": "你是笨蛋吗？" },
+    { "level": "N5", "main": "N + の + N", "meaning": "…的 (所属)", "example": "これは元カノの写真です。", "exampleMean": "这是前女友的照片。" },
+    { "level": "N5", "main": "Place + に + います/あります", "meaning": "在… (存在)", "example": "私の心にあなたがいます。", "exampleMean": "我的心里有你。" },
+    { "level": "N5", "main": "N + を + V-ます", "meaning": "做某事 (动作对象)", "example": "毎日、寂しさを食べています。", "exampleMean": "我每天都在以寂寞为食。" },
+    { "level": "N5", "main": "V-ません", "meaning": "不做…/不… (否定/习惯)", "example": "明日も働きません。", "exampleMean": "明天我也不工作。" },
+    { "level": "N5", "main": "V-ました", "meaning": "做了… (过去式)", "example": "給料は消えました。", "exampleMean": "工资消失了（花光了）。" },
+    { "level": "N5", "main": "V-たいです", "meaning": "想做…", "example": "猫になりたいです。", "exampleMean": "我想变成一只猫。" },
+    { "level": "N5", "main": "V-たくないです", "meaning": "不想做…", "example": "会社に行きたくないです。", "exampleMean": "我不想去公司。" },
+    { "level": "N5", "main": "V-て + ください", "meaning": "请做… (请求)", "example": "お金をください。", "exampleMean": "请给我钱。" },
+    { "level": "N5", "main": "V-て + います", "meaning": "正在做…", "example": "今、人生を無駄にしています。", "exampleMean": "现在，我正在虚度人生。" },
+    { "level": "N5", "main": "V-て + もいいですか", "meaning": "可以做…吗？ (许可)", "example": "ここでキスしてもいいですか。", "exampleMean": "我可以在这里吻你吗？" },
+    { "level": "N5", "main": "V-て + は いけません", "meaning": "禁止做…", "example": "私のスマホを見てはいけません。", "exampleMean": "绝对不准看我的手机。" },
+    { "level": "N5", "main": "V-ないで + ください", "meaning": "请不要做…", "example": "私を捨てないでください。", "exampleMean": "请不要抛弃我。" },
+    { "level": "N5", "main": "Place + へ + V(stem) + に行きます", "meaning": "去某地做某事 (目的)", "example": "イケメンを見に行きます。", "exampleMean": "我要去那个地方看帅哥。" },
+    { "level": "N5", "main": "V-ましょう", "meaning": "一起做…吧 (提议)", "example": "結婚しましょう。", "exampleMean": "我们要不结婚吧。" },
+    { "level": "N5", "main": "S1 + が、S2", "meaning": "虽然…但是… (转折)", "example": "好きですが、付き合えません。", "exampleMean": "虽然我喜欢你，但我不能和你交往。" },
+    { "level": "N5", "main": "S1 + から、S2", "meaning": "因为…所以… (原因)", "example": "顔がいいから、許します。", "exampleMean": "因为脸长得好看，所以我原谅你。" },
+    { "level": "N5", "main": "A は B より + Adj", "meaning": "A比B更… (比较)", "example": "花より団子。", "exampleMean": "与其赏花不如吃团子（实惠比外表重要）。" },
+    { "level": "N5", "main": "A のほうが + Adj", "meaning": "A方面更… (比较)", "example": "愛よりお金のほうが大切です。", "exampleMean": "比起爱情，钱更重要。" },
+    { "level": "N5", "main": "一番 + Adj", "meaning": "最… (最高级)", "example": "世界で一番、姫様が好きです。", "exampleMean": "在这个世界上，我最喜欢公主大人了。" },
+    { "level": "N5", "main": "N / Adj + に なります", "meaning": "变成… (变化)", "example": "来年、魔法使いになります。", "exampleMean": "明年，我就要变成魔法师了（指单身到30岁）。" },
+    { "level": "N5", "main": "V-たり V-たり します", "meaning": "又…又… (列举动作)", "example": "休みの日は、寝たり、寝たりします。", "exampleMean": "休息日我就睡睡觉，睡睡觉什么的。" },
+    { "level": "N5", "main": "V-る + こと が できます", "meaning": "会/能做… (能力)", "example": "どこでも寝ることができます。", "exampleMean": "我拥有在哪都能睡着的超能力。" },
+    { "level": "N5", "main": "V-た + こと が あります", "meaning": "曾经做过… (经历)", "example": "振られたことがあります。", "exampleMean": "我有被甩过的经历。" },
+    { "level": "N5", "main": "V-る/た + んです", "meaning": "其实是…/强调说明", "example": "トイレに行きたいんです！", "exampleMean": "（别废话了）我真的很想去厕所！" },
+    { "level": "N5", "main": "N + と (一緒に)", "meaning": "和…一起", "example": "二次元の嫁と一緒に住んでいます。", "exampleMean": "我和二次元的老婆住在一起。" },
+    { "level": "N5", "main": "Sentence + ね", "meaning": "…呢/吧 (确认/共鸣)", "example": "今日は暑いですね。溶けそうですね。", "exampleMean": "今天真热啊，感觉要融化了呢。" },
+    { "level": "N5", "main": "Sentence + よ", "meaning": "…哦 (告知/强调)", "example": "チャックが開いていますよ。", "exampleMean": "你的裤链开了哦。" },
+
+    // === N4 语法 ===
+    { "level": "N4", "main": "V-れる (可能形)", "meaning": "能/会做… (能力/可能)", "example": "私は日本語で喧嘩ができます。", "exampleMean": "我可以用日语吵架。" },
+    { "level": "N4", "main": "V-よう (意向形)", "meaning": "…吧/打算… (意志)", "example": "明日から本気出そう。", "exampleMean": "从明天开始认真起来吧（常见的谎言）。" },
+    { "level": "N4", "main": "V-る + つもりです", "meaning": "打算做… (计划)", "example": "イケメンと結婚するつもりです。", "exampleMean": "我打算和帅哥结婚（虽然还没有对象）。" },
+    { "level": "N4", "main": "V-よう + と思います", "meaning": "我想做… (意志)", "example": "仕事を辞めようと思います。", "exampleMean": "我想辞职。" },
+    { "level": "N4", "main": "V-て + しまいます", "meaning": "…了/糟糕了 (遗憾/完了)", "example": "大切なケーキを食べてしまいました。", "exampleMean": "我不小心把那个重要的蛋糕吃掉了。" },
+    { "level": "N4", "main": "V-て + みます", "meaning": "试着做… (尝试)", "example": "一度、死んでみます？", "exampleMean": "要试着死一次吗？（地狱少女梗）" },
+    { "level": "N4", "main": "V-た + ほうがいい", "meaning": "最好做… (建议)", "example": "その男はやめたほうがいい。", "exampleMean": "那个男人你最好还是放弃吧（渣男预警）。" },
+    { "level": "N4", "main": "V-ない + ほうがいい", "meaning": "最好别做… (建议)", "example": "真実を知らないほうがいい。", "exampleMean": "你最好不要知道真相。" },
+    { "level": "N4", "main": "V(stem) + すぎます", "meaning": "过于…/太… (过度)", "example": "あなたは可愛すぎます。罪です。", "exampleMean": "你太可爱了。这是犯罪。" },
+    { "level": "N4", "main": "V(stem) + ながら", "meaning": "一边…一边… (同时进行)", "example": "泣きながらご飯を食べたことがありますか。", "exampleMean": "你有过一边哭一边吃饭的经历吗？" },
+    { "level": "N4", "main": "V-なきゃ / なければなりません", "meaning": "必须做… (义务)", "example": "地球を守らなければなりません。", "exampleMean": "我必须守护地球（其实只是要去打工）。" },
+    { "level": "N4", "main": "V-なくてもいいです", "meaning": "不…也可以 (非义务)", "example": "無理しなくてもいいですよ。", "exampleMean": "不用勉强自己也可以哦（暖男发言）。" },
+    { "level": "N4", "main": "V-て + あげます", "meaning": "为别人做… (授受)", "example": "宿題を見せてあげる。", "exampleMean": "作业借给你抄（给你看）。" },
+    { "level": "N4", "main": "V-て + くれます", "meaning": "别人为我做… (授受)", "example": "神様がチャンスをくれました。", "exampleMean": "神赐予了我机会。" },
+    { "level": "N4", "main": "V-て + もらいます", "meaning": "请别人为我做… (授受)", "example": "彼氏にカバンを買ってもらいました。", "exampleMean": "我让男朋友给我买了包包。" },
+    { "level": "N4", "main": "S + たら、S", "meaning": "如果/要是… (假定条件)", "example": "宝くじが当たったら、連絡しません。", "exampleMean": "如果中了彩票，我就不联系你了。" },
+    { "level": "N4", "main": "V-て + も", "meaning": "即使…也… (逆接)", "example": "世界が滅んでも、君を守る。", "exampleMean": "即使世界毁灭，我也要守护你（中二病全开）。" },
+    { "level": "N4", "main": "N + なら", "meaning": "如果是…的话 (话题)", "example": "お金なら、ありません。", "exampleMean": "如果是说钱的话，我没有。" },
+    { "level": "N4", "main": "V-ば / Adj-ければ", "meaning": "如果… (条件)", "example": "押せば、開きます。", "exampleMean": "推一下，就开了（指门，或者心扉）。" },
+    { "level": "N4", "main": "V-る + と、S", "meaning": "一…就… (必然结果)", "example": "夜になると、寂しくなります。", "exampleMean": "一到晚上，就会变得寂寞。" },
+    { "level": "N4", "main": "S(普通形) + かもしれません", "meaning": "也许/可能… (推测)", "example": "彼は宇宙人かもしれません。", "exampleMean": "他也许是个外星人。" },
+    { "level": "N4", "main": "S(普通形) + でしょう", "meaning": "…吧/大概… (推测)", "example": "犯人はあなたでしょう。", "exampleMean": "犯人大概就是你吧。" },
+    { "level": "N4", "main": "S(普通形) + そうです", "meaning": "听说… (传闻)", "example": "あの二人は別れたそうです。やった！", "exampleMean": "听说那两个人分手了。太棒了！" },
+    { "level": "N4", "main": "V(stem)/Adj(stem) + そうです", "meaning": "看起来… (样态)", "example": "そのケーキ、美味しそうですね。一口ちょうだい。", "exampleMean": "那个蛋糕看起来很好吃呢。给我吃一口。" },
+    { "level": "N4", "main": "S(普通形) + ようです / みたいです", "meaning": "好像… (比喻/推测)", "example": "まるで夢のようです。", "exampleMean": "简直就像在做梦一样。" },
+    { "level": "N4", "main": "V(stem) + やすい / にくい", "meaning": "容易/难… (难易)", "example": "このペンは書きやすいが、太りやすい。", "exampleMean": "这支笔很好写，但我很容易发胖（强行押韵）。" },
+    { "level": "N4", "main": "V-る/N + ために", "meaning": "为了… (目的/利益)", "example": "推しのために働いています。", "exampleMean": "我是为了我的偶像（推）而工作的。" },
+    { "level": "N4", "main": "V-る/ない + ように", "meaning": "为了能… (目标/状态变化)", "example": "クビにならないように、頑張ります。", "exampleMean": "为了不被炒鱿鱼，我会努力的。" },
+    { "level": "N4", "main": "V-れる (受身形)", "meaning": "被… (被动)", "example": "みんなに笑われました。", "exampleMean": "我被大家嘲笑了。" },
+    { "level": "N4", "main": "V-させる (使役形)", "meaning": "让…做… (使役)", "example": "私を待たせないで。", "exampleMean": "别让我等。" },
+
+    // === N3 语法 ===
+    { "level": "N3", "main": "V-ちゃう / じゃう", "meaning": "…了 (V-てしまう的口语缩略)", "example": "あ、彼氏のプリン、食べちゃった。", "exampleMean": "啊，不小心把男朋友的布丁吃掉了（毫无悔意）。" },
+    { "level": "N3", "main": "V-とく / どく", "meaning": "先…/做好准备 (V-ておく的口语缩略)", "example": "ビール冷やしとくね。", "exampleMean": "我会先把啤酒冰好的（这是今晚最重要的事）。" },
+    { "level": "N3", "main": "N + について", "meaning": "关于…", "example": "今夜の夕食について会議を始めます。", "exampleMean": "现在开始召开关于今晚晚饭的会议。" },
+    { "level": "N3", "main": "N + にとって", "meaning": "对…来说", "example": "私にとって、スマホは酸素と同じです。", "exampleMean": "对我来说，手机和氧气一样重要。" },
+    { "level": "N3", "main": "N + として", "meaning": "作为…", "example": "プロの独身として生きていく。", "exampleMean": "我要作为一名职业单身狗活下去。" },
+    { "level": "N3", "main": "V-る + ところです", "meaning": "正要… (即将开始)", "example": "今、勉強するところでした。（嘘）", "exampleMean": "我正要开始学习呢。（弥天大谎）" },
+    { "level": "N3", "main": "V-ている + ところです", "meaning": "正在… (进行中)", "example": "今、上司の悪口を言っているところです。", "exampleMean": "现在我正在说上司的坏话。" },
+    { "level": "N3", "main": "V-た + ところです", "meaning": "刚刚… (刚刚结束)", "example": "お風呂から上がったところです。見てみます？", "exampleMean": "我刚洗完澡出来。要看看吗？" },
+    { "level": "N3", "main": "V-る + べきです", "meaning": "应该… (义务/道理)", "example": "あなたは私を崇拝するべきです。", "exampleMean": "你应该崇拜我。" },
+    { "level": "N3", "main": "V-る + べきではありません", "meaning": "不应该…", "example": "元カレに連絡するべきではありません。", "exampleMean": "你不应该联系前男友（那是自寻死路）。" },
+    { "level": "N3", "main": "S(普通形) + わけではありません", "meaning": "并不是说/并非…", "example": "あなたが嫌いなわけではありません。生理的に無理なだけです。", "exampleMean": "并不是说我讨厌你。只是生理上无法接受罢了。" },
+    { "level": "N3", "main": "V-ます(stem) + かけ", "meaning": "做到一半/没做完", "example": "飲みかけのタピオカが捨ててあります。", "exampleMean": "这里扔着一杯喝了一半的珍珠奶茶。" },
+    { "level": "N3", "main": "V-ます(stem) + きる", "meaning": "彻底做完/到了极限", "example": "給料を使い切りました。", "exampleMean": "我把工资花得精光。" },
+    { "level": "N3", "main": "V-ます(stem) + たて", "meaning": "刚刚做好的 (新鲜)", "example": "焼きたてのパンより、焼きたての恋がいい。", "exampleMean": "比起刚烤好的面包，我更想要新鲜出炉的恋爱。" },
+    { "level": "N3", "main": "V-ます(stem) + 直す", "meaning": "重新…", "example": "メイクを直すから、3時間待って。", "exampleMean": "我要补妆（重画），你在那等3个小时。" },
+    { "level": "N3", "main": "N + ばかり", "meaning": "光是…/净是…", "example": "文句ばかり言わないでください。", "exampleMean": "请不要净说些抱怨的话。" },
+    { "level": "N3", "main": "V-て + ばかりいます", "meaning": "老是做… (负面习惯)", "example": "息子はゲームをしてばかりいます。", "exampleMean": "我儿子老是在打游戏。" },
+    { "level": "N3", "main": "V-た + ものだ", "meaning": "以前常常… (回忆)", "example": "昔は私も可愛かったものです。", "exampleMean": "想当年，我也是很可爱的（岁月不饶人）。" },
+    { "level": "N3", "main": "S(普通形) + といっても", "meaning": "虽说…但是…", "example": "料理ができるといっても、カップ麺だけです。", "exampleMean": "虽说我会做饭，但也只限于泡面。" },
+    { "level": "N3", "main": "V-る/N-の + ついでに", "meaning": "顺便…", "example": "コンビニに行くついでに、私の人生も探してきて。", "exampleMean": "去便利店的时候，顺便帮我找找我的人生。" },
+    { "level": "N3", "main": "S(普通形) + 気がします", "meaning": "感觉好像… (预感)", "example": "今日は何かいいことが起こる気がします。", "exampleMean": "感觉今天会发生什么好事（通常是错觉）。" },
+    { "level": "N3", "main": "いくら/どんなに + V-て + も", "meaning": "无论怎么…也…", "example": "いくら寝ても、眠いです。", "exampleMean": "无论怎么睡，还是很困。" },
+    { "level": "N3", "main": "S(普通形) + かどうか", "meaning": "是不是…/是否…", "example": "おいしいかどうか、毒見してください。", "exampleMean": "好不好吃，请你帮我试毒（试吃）。" },
+    { "level": "N3", "main": "N + に比べて", "meaning": "和…相比", "example": "去年の私に比べて、今の私は老けました。", "exampleMean": "和去年的我相比，现在的我苍老了。" },
+    { "level": "N3", "main": "N + だけでなく", "meaning": "不仅…而且…", "example": "彼は貧乏なだけでなく、性格も悪いです。", "exampleMean": "他不仅穷，性格还很差（没救了）。" },
+    { "level": "N3", "main": "V-る + ことはありません", "meaning": "没必要…/用不着…", "example": "謝ることはありません。お金で解決しましょう。", "exampleMean": "没必要道歉。我们用钱解决吧。" },
+    { "level": "N3", "main": "N + によって", "meaning": "根据… (因人而异)", "example": "人によって、態度を変えます。", "exampleMean": "我会根据对象不同而改变态度（双标）。" },
+    { "level": "N3", "main": "S(普通形) + んじゃない？", "meaning": "是不是…？ (确认/推测)", "example": "それ、詐欺なんじゃない？", "exampleMean": "那个，该不会是诈骗吧？" },
+    { "level": "N3", "main": "V-る + ことがあります", "meaning": "有时会… (频率)", "example": "たまに自分が誰かわからなくなることがあります。", "exampleMean": "有时候我会不知道自己是谁。" },
+    { "level": "N3", "main": "N + という + N", "meaning": "叫…的/所谓的…", "example": "「推し」という概念が私を救いました。", "exampleMean": "是所谓的“推（偶像）”这一概念拯救了我。" },
+
+    // === N2 语法 (付费) ===
+    { "level": "N2", "main": "V-る + わけにはいかない", "meaning": "不能…/不可以… (基于社会常识或心理负担)", "example": "明日も仕事だから、死ぬわけにはいかない。", "exampleMean": "明天还要上班，所以我还不能死（社畜的觉悟）。" },
+    { "level": "N2", "main": "V-ない + こともない", "meaning": "也不是不…/未必不… (消极肯定)", "example": "あなたのことが好きじゃないこともない。", "exampleMean": "我也不是不喜欢你（死傲娇专用）。" },
+    { "level": "N2", "main": "V-ない + ざるを得ない", "meaning": "不得不…/只好… (无奈)", "example": "部長のギャグには、笑わざるを得ない。", "exampleMean": "面对部长的冷笑话，我不得不笑。" },
+    { "level": "N2", "main": "V-ます(stem) + かねない", "meaning": "很有可能… (负面预测)", "example": "彼なら、私の財布を盗みかねない。", "exampleMean": "如果是他的话，很有可能会偷我的钱包。" },
+    { "level": "N2", "main": "S(普通形) + に違いない", "meaning": "一定…/肯定… (确信)", "example": "犯人はヤスに違いない。", "exampleMean": "犯人肯定是阿安（经典推理梗）。" },
+    { "level": "N2", "main": "V-て + しょうがない / たまらない", "meaning": "…得不得了 (无法控制)", "example": "新しいiPhoneが欲しくてしょうがない。", "exampleMean": "我想要新iPhone想得不得了（虽然没钱）。" },
+    { "level": "N2", "main": "N + の / V-る/た + とおりに", "meaning": "按照…/正如…", "example": "私の言ったとおりにしないから、振られるんですよ。", "exampleMean": "正因为你不按我说的做，所以才会被甩啊。" },
+    { "level": "N2", "main": "V-る / N-の + 恐れがある", "meaning": "恐怕会…/有…的危险", "example": "このままでは、一生独身の恐れがあります。", "exampleMean": "照这样下去，恐怕会注孤生。" },
+    { "level": "N2", "main": "V-る + ものか / もんか", "meaning": "决不…/怎么会… (强烈否定)", "example": "二度とあいつに金を貸すものか。", "exampleMean": "我决不会再借钱给那家伙了（Flag）。" },
+    { "level": "N2", "main": "V-る + 一方だ", "meaning": "不断…/越来越… (通常指负面变化)", "example": "ストレスはたまる一方です。", "exampleMean": "压力只会不断积攒。" },
+    { "level": "N2", "main": "S(普通形) + からといって", "meaning": "虽说…但也…/不能因为…就…", "example": "暇だからといって、あなたに会いたいわけではない。", "exampleMean": "虽说我很闲，但也并不是想见你。" },
+    { "level": "N2", "main": "S(普通形) + 上(に)", "meaning": "而且…/不仅…还… (累加)", "example": "この部屋は狭い上に、家賃が高い。", "exampleMean": "这房间不仅窄，房租还贵（坑爹）。" },
+    { "level": "N2", "main": "N + はもちろん / はもとより", "meaning": "…不用说，就连…", "example": "彼は英語はもちろん、宇宙語も話せます。", "exampleMean": "英语自不必说，他连宇宙语都会说（形容人奇怪）。" },
+    { "level": "N2", "main": "S(普通形) + に越したことはない", "meaning": "莫过于…/最好是…", "example": "イケメンに越したことはない。", "exampleMean": "男朋友当然是越帅越好（虽然找不到）。" },
+    { "level": "N2", "main": "N + をめぐって", "meaning": "围绕着… (争论/对立)", "example": "最後の唐揚げをめぐって、兄弟が戦った。", "exampleMean": "围绕着最后一块炸鸡，兄弟俩开战了。" },
+    { "level": "N2", "main": "V-た + あげく", "meaning": "结果…/最后… (负面结果)", "example": "2時間待たされたあげく、ドタキャンされた。", "exampleMean": "让人等了2个小时，结果最后还被放鸽子了。" },
+    { "level": "N2", "main": "V-ます(stem) + がたい", "meaning": "难以… (心理上难)", "example": "信じがたいことですが、私はまだ20代です。", "exampleMean": "虽然难以置信，但我真的还是20多岁。" },
+    { "level": "N2", "main": "V-た + きり", "meaning": "自从…就再没…/只有…", "example": "彼とは３年前に会ったきりです。", "exampleMean": "我和他自从3年前见过之后就再没见过了。" },
+    { "level": "N2", "main": "S(普通形) + どころか", "meaning": "别说…就连…/非但…反而…", "example": "貯金どころか、借金が増えました。", "exampleMean": "别说存钱了，债务反而增加了。" },
+    { "level": "N2", "main": "S(普通形) + に決まっている", "meaning": "一定… (口语)", "example": "それは嘘に決まっている。", "exampleMean": "那一定是谎言。" },
+    { "level": "N2", "main": "V-ます(stem) + ようがない", "meaning": "无法…/没法… (手段)", "example": "スマホが壊れて、連絡しようがありません。", "exampleMean": "手机坏了，没法联系。" },
+    { "level": "N2", "main": "S(普通形) + ものの", "meaning": "虽然…但是…", "example": "ジムに入会したものの、一度も行っていません。", "exampleMean": "虽然办了健身房的卡，但一次都没去过。" },
+    { "level": "N2", "main": "N/V-る + 際(に)", "meaning": "…时候 (正式)", "example": "私が死んだ際には、ハードディスクを破壊してください。", "exampleMean": "在我死的时候，请务必销毁我的硬盘。" },
+    { "level": "N2", "main": "N + に先立って", "meaning": "在…之前 (正式)", "example": "交際に先立って、年収を教えてください。", "exampleMean": "在交往之前，请告诉我你的年收入。" },
+    { "level": "N2", "main": "V-ます(stem) + 次第（しだい）", "meaning": "一…立刻…", "example": "給料が入り次第、返します。", "exampleMean": "工资一到账，我立刻还钱（常用借口）。" },
+    { "level": "N2", "main": "V-る + につれて", "meaning": "随着…", "example": "大人になるにつれて、夢が消えていきます。", "exampleMean": "随着长大成人，梦想也随之消失了。" },
+    { "level": "N2", "main": "Adj/N/V + だけに", "meaning": "正因为…所以更加…", "example": "期待していただけに、ガッカリしました。", "exampleMean": "正因为曾期待过，所以更加失望。" },
+    { "level": "N2", "main": "N + にしたら / にすれば", "meaning": "对…来说 (立场)", "example": "猫にしたら、人間はただの給餌機です。", "exampleMean": "对猫来说，人类不过是喂食器罢了。" },
+    { "level": "N2", "main": "V-る + ことだ", "meaning": "应该… (建议/忠告)", "example": "痩せたいなら、食べないことだ。", "exampleMean": "想瘦的话，就别吃。" },
+    { "level": "N2", "main": "S(普通形) + というより", "meaning": "与其说…不如说…", "example": "彼は歌手というより、コメディアンです。", "exampleMean": "与其说他是歌手，不如说他是喜剧演员。" },
+
+    // === N1 语法 (付费) ===
+    { "level": "N1", "main": "V-る + べく", "meaning": "为了… (书面目的)", "example": "神になるべく、プログラミングを始めました。", "exampleMean": "为了成为神，我开始学习编程。" },
+    { "level": "N1", "main": "N + ならいざしらず", "meaning": "如果是…还情有可原，但是…", "example": "子供ならいざしらず、大人がその服は犯罪です。", "exampleMean": "如果是小孩子也就算了，成年人穿那件衣服就是犯罪。" },
+    { "level": "N1", "main": "S(普通形) + かと思いきや", "meaning": "原以为…没料到… (意外)", "example": "告白かと思いきや、壺を売られました。", "exampleMean": "原以为他是要表白，结果他是要卖我壶。" },
+    { "level": "N1", "main": "N + 以外の何物でもない", "meaning": "正是…/不外乎是… (断定)", "example": "この残業は、拷問以外の何物でもない。", "exampleMean": "这加班，根本就是拷问。" },
+    { "level": "N1", "main": "N + あっての", "meaning": "有了…才有… (强调条件)", "example": "推しあっての私です。", "exampleMean": "正是有了我的偶像（推），才有了现在的我。" },
+    { "level": "N1", "main": "N + もさることながら", "meaning": "…自不必说，…更加…", "example": "彼女は顔もさることながら、資産もすごい。", "exampleMean": "她长得好看自不必说，资产更是惊人（阿姨我不想努力了）。" },
+    { "level": "N1", "main": "V-て + からというもの", "meaning": "自从…以后 (发生巨大变化)", "example": "結婚してからというもの、夫は抜け殻のようです。", "exampleMean": "自从结了婚，丈夫就像个空壳一样。" },
+    { "level": "N1", "main": "N + にかかわる", "meaning": "关系到…/影响到… (重大后果)", "example": "ハゲるかどうかは、男の尊厳にかかわる問題だ。", "exampleMean": "秃不秃头，是关系到男人尊严的问题。" },
+    { "level": "N1", "main": "N + を余儀（よぎ）なくされる", "meaning": "不得不…/被迫… (硬性局势)", "example": "不祥事で、辞任を余儀なくされました。", "exampleMean": "因为丑闻，被迫辞职了。" },
+    { "level": "N1", "main": "N + をおいて～ない", "meaning": "除了…没有… (唯一性)", "example": "世界を救えるのは、俺をおいて他にない。", "exampleMean": "能拯救世界的，除了我没别人（中二病晚期）。" },
+    { "level": "N1", "main": "N + にあるまじき", "meaning": "不该有的/不相称的 (严厉批评)", "example": "それはアイドルにあるまじき発言です。", "exampleMean": "那是作为偶像不该有的发言。" },
+    { "level": "N1", "main": "V-る + に（は）あたらない", "meaning": "用不着…/没什么值得…", "example": "驚くにはあたりません。私は天才ですから。", "exampleMean": "用不着惊讶。因为我是天才。" },
+    { "level": "N1", "main": "N/V-ます + こそすれ", "meaning": "虽然…但绝对不…", "example": "感謝こそすれ、恨むことなどありません。", "exampleMean": "我只有感谢，绝无怨恨（虽然眼神里充满了杀气）。" },
+    { "level": "N1", "main": "V-よう + が / と", "meaning": "无论…都…", "example": "世界がどうなろうが、知ったことではない。", "exampleMean": "无论世界变得怎样，都关我屁事。" },
+    { "level": "N1", "main": "N + と相まって", "meaning": "再加上…/与…配合", "example": "不細工な顔と相まって、性格も最悪です。", "exampleMean": "丑陋的脸庞再加上最差的性格（简直绝望）。" },
+    { "level": "N1", "main": "V-る + きらいがある", "meaning": "有…的倾向 (负面)", "example": "彼は話を盛るきらいがある。", "exampleMean": "他有夸大其词的毛病。" },
+    { "level": "N1", "main": "V-る + べからざる", "meaning": "禁止…的/不该…的 (修饰名词)", "example": "パソコンに「見るべからざるフォルダ」があります。", "exampleMean": "电脑里有一个“绝对不准看”的文件夹。" },
+    { "level": "N1", "main": "N + にかこつけて", "meaning": "借口…/托辞…", "example": "残業にかこつけて、不倫しています。", "exampleMean": "借口加班，其实在搞婚外情。" },
+    { "level": "N1", "main": "V-る + にかたくない", "meaning": "不难… (察觉/想象)", "example": "彼の絶望は、想像にかたくない。", "exampleMean": "他的绝望，不难想象。" },
+    { "level": "N1", "main": "V-る + に足る（たる）", "meaning": "值得…/足以…", "example": "信頼に足る情報は、ネットにはない。", "exampleMean": "网上没有值得信赖的信息。" },
+    { "level": "N1", "main": "N + に即して（そくして）", "meaning": "根据…/按照… (标准)", "example": "事実に即して、弁解してください。", "exampleMean": "请依据事实进行辩解。" },
+    { "level": "N1", "main": "N + をものともせず", "meaning": "不顾…/克服… (正面赞扬)", "example": "親の反対をものともせず、ニートになりました。", "exampleMean": "不顾父母的反对，我毅然成为了啃老族（用法错误但很真实）。" },
+    { "level": "N1", "main": "N + をよそに", "meaning": "无视…/不顾… (冷漠)", "example": "親の心配をよそに、遊びまくっています。", "exampleMean": "完全无视父母的担心，到处疯玩。" },
+    { "level": "N1", "main": "V-つ + V-つ", "meaning": "时而…时而… (互相动作)", "example": "満員電車で、押しつ押されつしています。", "exampleMean": "在满员电车里，大家挤来挤去。" },
+    { "level": "N1", "main": "N + めく", "meaning": "带有…气息/像…一样", "example": "別れ話が、脅迫めいてきました。", "exampleMean": "分手的话题，带上了一股威胁的味道。" },
+    { "level": "N1", "main": "Number/S + といったところだ", "meaning": "大概…/顶多… (程度不高)", "example": "私の年収？猫の餌代といったところです。", "exampleMean": "我的年收入？顶多也就是猫粮钱吧。" },
+    { "level": "N1", "main": "S(普通形) + とは", "meaning": "竟然… (惊讶)", "example": "彼が女だったとは。", "exampleMean": "没想到他竟然是女的（剧情反转）。" },
+    { "level": "N1", "main": "V-ん + ばかりに", "meaning": "显出…的样子/简直要…", "example": "「金を出せ」と言わんばかりに、手を出した。", "exampleMean": "他伸出手，脸上写满了“把钱交出来”。" },
+    { "level": "N1", "main": "Number + からある", "meaning": "…以上/多达… (强调数量多)", "example": "一億からある借金を背負っています。", "exampleMean": "我背负着多达一亿的债务。" },
+    { "level": "N1", "main": "V-る + くらいなら", "meaning": "与其…不如… (极端比较)", "example": "あいつと付き合うくらいなら、死んだほうがマシだ。", "exampleMean": "与其和那家伙交往，我还不如去死。" }
+];
+
+// 7. 强制合并语法：把标准语法塞到核心语法后面
+const finalGrammar = [...coreGrammar];
+if (bulkGrammarList.length > 0) {
+    finalGrammar.push(...bulkGrammarList);
+}
+
+// 8. 导出数据给网站使用
 const kiyoData = {
-    vocab: finalVocab, // 现在这里包含了所有单词
+    vocab: finalVocab, // (包含核心+标准单词)
+    grammar: finalGrammar, // (包含核心+标准语法)
+    basics: basicData, // 基础知识
     
-    // === 👇 核心语法库 (N5-N1 完整版) 👇 ===
-    grammar: [
-        // === N5 语法 ===
-        { "level": "N5", "main": "A は B です", "meaning": "A是B (判断/定义)", "example": "私は独身です。プロの独身です。", "exampleMean": "我是单身。我是职业单身狗。" },
-        { "level": "N5", "main": "A は B じゃありません", "meaning": "A不是B (否定)", "example": "これは料理じゃありません。毒です。", "exampleMean": "这不仅仅是料理。这是毒药。" },
-        { "level": "N5", "main": "S + か", "meaning": "表示疑问", "example": "あなたはバカですか。", "exampleMean": "你是笨蛋吗？" },
-        { "level": "N5", "main": "N + の + N", "meaning": "…的 (所属)", "example": "これは元カノの写真です。", "exampleMean": "这是前女友的照片。" },
-        { "level": "N5", "main": "Place + に + います/あります", "meaning": "在… (存在)", "example": "私の心にあなたがいます。", "exampleMean": "我的心里有你。" },
-        { "level": "N5", "main": "N + を + V-ます", "meaning": "做某事 (动作对象)", "example": "毎日、寂しさを食べています。", "exampleMean": "我每天都在以寂寞为食。" },
-        { "level": "N5", "main": "V-ません", "meaning": "不做…/不… (否定/习惯)", "example": "明日も働きません。", "exampleMean": "明天我也不工作。" },
-        { "level": "N5", "main": "V-ました", "meaning": "做了… (过去式)", "example": "給料は消えました。", "exampleMean": "工资消失了（花光了）。" },
-        { "level": "N5", "main": "V-たいです", "meaning": "想做…", "example": "猫になりたいです。", "exampleMean": "我想变成一只猫。" },
-        { "level": "N5", "main": "V-たくないです", "meaning": "不想做…", "example": "会社に行きたくないです。", "exampleMean": "我不想去公司。" },
-        { "level": "N5", "main": "V-て + ください", "meaning": "请做… (请求)", "example": "お金をください。", "exampleMean": "请给我钱。" },
-        { "level": "N5", "main": "V-て + います", "meaning": "正在做…", "example": "今、人生を無駄にしています。", "exampleMean": "现在，我正在虚度人生。" },
-        { "level": "N5", "main": "V-て + もいいですか", "meaning": "可以做…吗？ (许可)", "example": "ここでキスしてもいいですか。", "exampleMean": "我可以在这里吻你吗？" },
-        { "level": "N5", "main": "V-て + は いけません", "meaning": "禁止做…", "example": "私のスマホを見てはいけません。", "exampleMean": "绝对不准看我的手机。" },
-        { "level": "N5", "main": "V-ないで + ください", "meaning": "请不要做…", "example": "私を捨てないでください。", "exampleMean": "请不要抛弃我。" },
-        { "level": "N5", "main": "Place + へ + V(stem) + に行きます", "meaning": "去某地做某事 (目的)", "example": "イケメンを見に行きます。", "exampleMean": "我要去那个地方看帅哥。" },
-        { "level": "N5", "main": "V-ましょう", "meaning": "一起做…吧 (提议)", "example": "結婚しましょう。", "exampleMean": "我们要不结婚吧。" },
-        { "level": "N5", "main": "S1 + が、S2", "meaning": "虽然…但是… (转折)", "example": "好きですが、付き合えません。", "exampleMean": "虽然我喜欢你，但我不能和你交往。" },
-        { "level": "N5", "main": "S1 + から、S2", "meaning": "因为…所以… (原因)", "example": "顔がいいから、許します。", "exampleMean": "因为脸长得好看，所以我原谅你。" },
-        { "level": "N5", "main": "A は B より + Adj", "meaning": "A比B更… (比较)", "example": "花より団子。", "exampleMean": "与其赏花不如吃团子（实惠比外表重要）。" },
-        { "level": "N5", "main": "A のほうが + Adj", "meaning": "A方面更… (比较)", "example": "愛よりお金のほうが大切です。", "exampleMean": "比起爱情，钱更重要。" },
-        { "level": "N5", "main": "一番 + Adj", "meaning": "最… (最高级)", "example": "世界で一番、姫様が好きです。", "exampleMean": "在这个世界上，我最喜欢公主大人了。" },
-        { "level": "N5", "main": "N / Adj + に なります", "meaning": "变成… (变化)", "example": "来年、魔法使いになります。", "exampleMean": "明年，我就要变成魔法师了（指单身到30岁）。" },
-        { "level": "N5", "main": "V-たり V-たり します", "meaning": "又…又… (列举动作)", "example": "休みの日は、寝たり、寝たりします。", "exampleMean": "休息日我就睡睡觉，睡睡觉什么的。" },
-        { "level": "N5", "main": "V-る + こと が できます", "meaning": "会/能做… (能力)", "example": "どこでも寝ることができます。", "exampleMean": "我拥有在哪都能睡着的超能力。" },
-        { "level": "N5", "main": "V-た + こと が あります", "meaning": "曾经做过… (经历)", "example": "振られたことがあります。", "exampleMean": "我有被甩过的经历。" },
-        { "level": "N5", "main": "V-る/た + んです", "meaning": "其实是…/强调说明", "example": "トイレに行きたいんです！", "exampleMean": "（别废话了）我真的很想去厕所！" },
-        { "level": "N5", "main": "N + と (一緒に)", "meaning": "和…一起", "example": "二次元の嫁と一緒に住んでいます。", "exampleMean": "我和二次元的老婆住在一起。" },
-        { "level": "N5", "main": "Sentence + ね", "meaning": "…呢/吧 (确认/共鸣)", "example": "今日は暑いですね。溶けそうですね。", "exampleMean": "今天真热啊，感觉要融化了呢。" },
-        { "level": "N5", "main": "Sentence + よ", "meaning": "…哦 (告知/强调)", "example": "チャックが開いていますよ。", "exampleMean": "你的裤链开了哦。" },
-
-        // === N4 语法 ===
-        { "level": "N4", "main": "V-れる (可能形)", "meaning": "能/会做… (能力/可能)", "example": "私は日本語で喧嘩ができます。", "exampleMean": "我可以用日语吵架。" },
-        { "level": "N4", "main": "V-よう (意向形)", "meaning": "…吧/打算… (意志)", "example": "明日から本気出そう。", "exampleMean": "从明天开始认真起来吧（常见的谎言）。" },
-        { "level": "N4", "main": "V-る + つもりです", "meaning": "打算做… (计划)", "example": "イケメンと結婚するつもりです。", "exampleMean": "我打算和帅哥结婚（虽然还没有对象）。" },
-        { "level": "N4", "main": "V-よう + と思います", "meaning": "我想做… (意志)", "example": "仕事を辞めようと思います。", "exampleMean": "我想辞职。" },
-        { "level": "N4", "main": "V-て + しまいます", "meaning": "…了/糟糕了 (遗憾/完了)", "example": "大切なケーキを食べてしまいました。", "exampleMean": "我不小心把那个重要的蛋糕吃掉了。" },
-        { "level": "N4", "main": "V-て + みます", "meaning": "试着做… (尝试)", "example": "一度、死んでみます？", "exampleMean": "要试着死一次吗？（地狱少女梗）" },
-        { "level": "N4", "main": "V-た + ほうがいい", "meaning": "最好做… (建议)", "example": "その男はやめたほうがいい。", "exampleMean": "那个男人你最好还是放弃吧（渣男预警）。" },
-        { "level": "N4", "main": "V-ない + ほうがいい", "meaning": "最好别做… (建议)", "example": "真実を知らないほうがいい。", "exampleMean": "你最好不要知道真相。" },
-        { "level": "N4", "main": "V(stem) + すぎます", "meaning": "过于…/太… (过度)", "example": "あなたは可愛すぎます。罪です。", "exampleMean": "你太可爱了。这是犯罪。" },
-        { "level": "N4", "main": "V(stem) + ながら", "meaning": "一边…一边… (同时进行)", "example": "泣きながらご飯を食べたことがありますか。", "exampleMean": "你有过一边哭一边吃饭的经历吗？" },
-        { "level": "N4", "main": "V-なきゃ / なければなりません", "meaning": "必须做… (义务)", "example": "地球を守らなければなりません。", "exampleMean": "我必须守护地球（其实只是要去打工）。" },
-        { "level": "N4", "main": "V-なくてもいいです", "meaning": "不…也可以 (非义务)", "example": "無理しなくてもいいですよ。", "exampleMean": "不用勉强自己也可以哦（暖男发言）。" },
-        { "level": "N4", "main": "V-て + あげます", "meaning": "为别人做… (授受)", "example": "宿題を見せてあげる。", "exampleMean": "作业借给你抄（给你看）。" },
-        { "level": "N4", "main": "V-て + くれます", "meaning": "别人为我做… (授受)", "example": "神様がチャンスをくれました。", "exampleMean": "神赐予了我机会。" },
-        { "level": "N4", "main": "V-て + もらいます", "meaning": "请别人为我做… (授受)", "example": "彼氏にカバンを買ってもらいました。", "exampleMean": "我让男朋友给我买了包包。" },
-        { "level": "N4", "main": "S + たら、S", "meaning": "如果/要是… (假定条件)", "example": "宝くじが当たったら、連絡しません。", "exampleMean": "如果中了彩票，我就不联系你了。" },
-        { "level": "N4", "main": "V-て + も", "meaning": "即使…也… (逆接)", "example": "世界が滅んでも、君を守る。", "exampleMean": "即使世界毁灭，我也要守护你（中二病全开）。" },
-        { "level": "N4", "main": "N + なら", "meaning": "如果是…的话 (话题)", "example": "お金なら、ありません。", "exampleMean": "如果是说钱的话，我没有。" },
-        { "level": "N4", "main": "V-ば / Adj-ければ", "meaning": "如果… (条件)", "example": "押せば、開きます。", "exampleMean": "推一下，就开了（指门，或者心扉）。" },
-        { "level": "N4", "main": "V-る + と、S", "meaning": "一…就… (必然结果)", "example": "夜になると、寂しくなります。", "exampleMean": "一到晚上，就会变得寂寞。" },
-        { "level": "N4", "main": "S(普通形) + かもしれません", "meaning": "也许/可能… (推测)", "example": "彼は宇宙人かもしれません。", "exampleMean": "他也许是个外星人。" },
-        { "level": "N4", "main": "S(普通形) + でしょう", "meaning": "…吧/大概… (推测)", "example": "犯人はあなたでしょう。", "exampleMean": "犯人大概就是你吧。" },
-        { "level": "N4", "main": "S(普通形) + そうです", "meaning": "听说… (传闻)", "example": "あの二人は別れたそうです。やった！", "exampleMean": "听说那两个人分手了。太棒了！" },
-        { "level": "N4", "main": "V(stem)/Adj(stem) + そうです", "meaning": "看起来… (样态)", "example": "そのケーキ、美味しそうですね。一口ちょうだい。", "exampleMean": "那个蛋糕看起来很好吃呢。给我吃一口。" },
-        { "level": "N4", "main": "S(普通形) + ようです / みたいです", "meaning": "好像… (比喻/推测)", "example": "まるで夢のようです。", "exampleMean": "简直就像在做梦一样。" },
-        { "level": "N4", "main": "V(stem) + やすい / にくい", "meaning": "容易/难… (难易)", "example": "このペンは書きやすいが、太りやすい。", "exampleMean": "这支笔很好写，但我很容易发胖（强行押韵）。" },
-        { "level": "N4", "main": "V-る/N + ために", "meaning": "为了… (目的/利益)", "example": "推しのために働いています。", "exampleMean": "我是为了我的偶像（推）而工作的。" },
-        { "level": "N4", "main": "V-る/ない + ように", "meaning": "为了能… (目标/状态变化)", "example": "クビにならないように、頑張ります。", "exampleMean": "为了不被炒鱿鱼，我会努力的。" },
-        { "level": "N4", "main": "V-れる (受身形)", "meaning": "被… (被动)", "example": "みんなに笑われました。", "exampleMean": "我被大家嘲笑了。" },
-        { "level": "N4", "main": "V-させる (使役形)", "meaning": "让…做… (使役)", "example": "私を待たせないで。", "exampleMean": "别让我等。" },
-
-        // === N3 语法 ===
-        { "level": "N3", "main": "V-ちゃう / じゃう", "meaning": "…了 (V-てしまう的口语缩略)", "example": "あ、彼氏のプリン、食べちゃった。", "exampleMean": "啊，不小心把男朋友的布丁吃掉了（毫无悔意）。" },
-        { "level": "N3", "main": "V-とく / どく", "meaning": "先…/做好准备 (V-ておく的口语缩略)", "example": "ビール冷やしとくね。", "exampleMean": "我会先把啤酒冰好的（这是今晚最重要的事）。" },
-        { "level": "N3", "main": "N + について", "meaning": "关于…", "example": "今夜の夕食について会議を始めます。", "exampleMean": "现在开始召开关于今晚晚饭的会议。" },
-        { "level": "N3", "main": "N + にとって", "meaning": "对…来说", "example": "私にとって、スマホは酸素と同じです。", "exampleMean": "对我来说，手机和氧气一样重要。" },
-        { "level": "N3", "main": "N + として", "meaning": "作为…", "example": "プロの独身として生きていく。", "exampleMean": "我要作为一名职业单身狗活下去。" },
-        { "level": "N3", "main": "V-る + ところです", "meaning": "正要… (即将开始)", "example": "今、勉強するところでした。（嘘）", "exampleMean": "我正要开始学习呢。（弥天大谎）" },
-        { "level": "N3", "main": "V-ている + ところです", "meaning": "正在… (进行中)", "example": "今、上司の悪口を言っているところです。", "exampleMean": "现在我正在说上司的坏话。" },
-        { "level": "N3", "main": "V-た + ところです", "meaning": "刚刚… (刚刚结束)", "example": "お風呂から上がったところです。見てみます？", "exampleMean": "我刚洗完澡出来。要看看吗？" },
-        { "level": "N3", "main": "V-る + べきです", "meaning": "应该… (义务/道理)", "example": "あなたは私を崇拝するべきです。", "exampleMean": "你应该崇拜我。" },
-        { "level": "N3", "main": "V-る + べきではありません", "meaning": "不应该…", "example": "元カレに連絡するべきではありません。", "exampleMean": "你不应该联系前男友（那是自寻死路）。" },
-        { "level": "N3", "main": "S(普通形) + わけではありません", "meaning": "并不是说/并非…", "example": "あなたが嫌いなわけではありません。生理的に無理なだけです。", "exampleMean": "并不是说我讨厌你。只是生理上无法接受罢了。" },
-        { "level": "N3", "main": "V-ます(stem) + かけ", "meaning": "做到一半/没做完", "example": "飲みかけのタピオカが捨ててあります。", "exampleMean": "这里扔着一杯喝了一半的珍珠奶茶。" },
-        { "level": "N3", "main": "V-ます(stem) + きる", "meaning": "彻底做完/到了极限", "example": "給料を使い切りました。", "exampleMean": "我把工资花得精光。" },
-        { "level": "N3", "main": "V-ます(stem) + たて", "meaning": "刚刚做好的 (新鲜)", "example": "焼きたてのパンより、焼きたての恋がいい。", "exampleMean": "比起刚烤好的面包，我更想要新鲜出炉的恋爱。" },
-        { "level": "N3", "main": "V-ます(stem) + 直す", "meaning": "重新…", "example": "メイクを直すから、3時間待って。", "exampleMean": "我要补妆（重画），你在那等3个小时。" },
-        { "level": "N3", "main": "N + ばかり", "meaning": "光是…/净是…", "example": "文句ばかり言わないでください。", "exampleMean": "请不要净说些抱怨的话。" },
-        { "level": "N3", "main": "V-て + ばかりいます", "meaning": "老是做… (负面习惯)", "example": "息子はゲームをしてばかりいます。", "exampleMean": "我儿子老是在打游戏。" },
-        { "level": "N3", "main": "V-た + ものだ", "meaning": "以前常常… (回忆)", "example": "昔は私も可愛かったものです。", "exampleMean": "想当年，我也是很可爱的（岁月不饶人）。" },
-        { "level": "N3", "main": "S(普通形) + といっても", "meaning": "虽说…但是…", "example": "料理ができるといっても、カップ麺だけです。", "exampleMean": "虽说我会做饭，但也只限于泡面。" },
-        { "level": "N3", "main": "V-る/N-の + ついでに", "meaning": "顺便…", "example": "コンビニに行くついでに、私の人生も探してきて。", "exampleMean": "去便利店的时候，顺便帮我找找我的人生。" },
-        { "level": "N3", "main": "S(普通形) + 気がします", "meaning": "感觉好像… (预感)", "example": "今日は何かいいことが起こる気がします。", "exampleMean": "感觉今天会发生什么好事（通常是错觉）。" },
-        { "level": "N3", "main": "いくら/どんなに + V-て + も", "meaning": "无论怎么…也…", "example": "いくら寝ても、眠いです。", "exampleMean": "无论怎么睡，还是很困。" },
-        { "level": "N3", "main": "S(普通形) + かどうか", "meaning": "是不是…/是否…", "example": "おいしいかどうか、毒見してください。", "exampleMean": "好不好吃，请你帮我试毒（试吃）。" },
-        { "level": "N3", "main": "N + に比べて", "meaning": "和…相比", "example": "去年の私に比べて、今の私は老けました。", "exampleMean": "和去年的我相比，现在的我苍老了。" },
-        { "level": "N3", "main": "N + だけでなく", "meaning": "不仅…而且…", "example": "彼は貧乏なだけでなく、性格も悪いです。", "exampleMean": "他不仅穷，性格还很差（没救了）。" },
-        { "level": "N3", "main": "V-る + ことはありません", "meaning": "没必要…/用不着…", "example": "謝ることはありません。お金で解決しましょう。", "exampleMean": "没必要道歉。我们用钱解决吧。" },
-        { "level": "N3", "main": "N + によって", "meaning": "根据… (因人而异)", "example": "人によって、態度を変えます。", "exampleMean": "我会根据对象不同而改变态度（双标）。" },
-        { "level": "N3", "main": "S(普通形) + んじゃない？", "meaning": "是不是…？ (确认/推测)", "example": "それ、詐欺なんじゃない？", "exampleMean": "那个，该不会是诈骗吧？" },
-        { "level": "N3", "main": "V-る + ことがあります", "meaning": "有时会… (频率)", "example": "たまに自分が誰かわからなくなることがあります。", "exampleMean": "有时候我会不知道自己是谁。" },
-        { "level": "N3", "main": "N + という + N", "meaning": "叫…的/所谓的…", "example": "「推し」という概念が私を救いました。", "exampleMean": "是所谓的“推（偶像）”这一概念拯救了我。" },
-
-        // === N2 语法 (付费) ===
-        { "level": "N2", "main": "V-る + わけにはいかない", "meaning": "不能…/不可以… (基于社会常识或心理负担)", "example": "明日も仕事だから、死ぬわけにはいかない。", "exampleMean": "明天还要上班，所以我还不能死（社畜的觉悟）。" },
-        { "level": "N2", "main": "V-ない + こともない", "meaning": "也不是不…/未必不… (消极肯定)", "example": "あなたのことが好きじゃないこともない。", "exampleMean": "我也不是不喜欢你（死傲娇专用）。" },
-        { "level": "N2", "main": "V-ない + ざるを得ない", "meaning": "不得不…/只好… (无奈)", "example": "部長のギャグには、笑わざるを得ない。", "exampleMean": "面对部长的冷笑话，我不得不笑。" },
-        { "level": "N2", "main": "V-ます(stem) + かねない", "meaning": "很有可能… (负面预测)", "example": "彼なら、私の財布を盗みかねない。", "exampleMean": "如果是他的话，很有可能会偷我的钱包。" },
-        { "level": "N2", "main": "S(普通形) + に違いない", "meaning": "一定…/肯定… (确信)", "example": "犯人はヤスに違いない。", "exampleMean": "犯人肯定是阿安（经典推理梗）。" },
-        { "level": "N2", "main": "V-て + しょうがない / たまらない", "meaning": "…得不得了 (无法控制)", "example": "新しいiPhoneが欲しくてしょうがない。", "exampleMean": "我想要新iPhone想得不得了（虽然没钱）。" },
-        { "level": "N2", "main": "N + の / V-る/た + とおりに", "meaning": "按照…/正如…", "example": "私の言ったとおりにしないから、振られるんですよ。", "exampleMean": "正因为你不按我说的做，所以才会被甩啊。" },
-        { "level": "N2", "main": "V-る / N-の + 恐れがある", "meaning": "恐怕会…/有…的危险", "example": "このままでは、一生独身の恐れがあります。", "exampleMean": "照这样下去，恐怕会注孤生。" },
-        { "level": "N2", "main": "V-る + ものか / もんか", "meaning": "决不…/怎么会… (强烈否定)", "example": "二度とあいつに金を貸すものか。", "exampleMean": "我决不会再借钱给那家伙了（Flag）。" },
-        { "level": "N2", "main": "V-る + 一方だ", "meaning": "不断…/越来越… (通常指负面变化)", "example": "ストレスはたまる一方です。", "exampleMean": "压力只会不断积攒。" },
-        { "level": "N2", "main": "S(普通形) + からといって", "meaning": "虽说…但也…/不能因为…就…", "example": "暇だからといって、あなたに会いたいわけではない。", "exampleMean": "虽说我很闲，但也并不是想见你。" },
-        { "level": "N2", "main": "S(普通形) + 上(に)", "meaning": "而且…/不仅…还… (累加)", "example": "この部屋は狭い上に、家賃が高い。", "exampleMean": "这房间不仅窄，房租还贵（坑爹）。" },
-        { "level": "N2", "main": "N + はもちろん / はもとより", "meaning": "…不用说，就连…", "example": "彼は英語はもちろん、宇宙語も話せます。", "exampleMean": "英语自不必说，他连宇宙语都会说（形容人奇怪）。" },
-        { "level": "N2", "main": "S(普通形) + に越したことはない", "meaning": "莫过于…/最好是…", "example": "イケメンに越したことはない。", "exampleMean": "男朋友当然是越帅越好（虽然找不到）。" },
-        { "level": "N2", "main": "N + をめぐって", "meaning": "围绕着… (争论/对立)", "example": "最後の唐揚げをめぐって、兄弟が戦った。", "exampleMean": "围绕着最后一块炸鸡，兄弟俩开战了。" },
-        { "level": "N2", "main": "V-た + あげく", "meaning": "结果…/最后… (负面结果)", "example": "2時間待たされたあげく、ドタキャンされた。", "exampleMean": "让人等了2个小时，结果最后还被放鸽子了。" },
-        { "level": "N2", "main": "V-ます(stem) + がたい", "meaning": "难以… (心理上难)", "example": "信じがたいことですが、私はまだ20代です。", "exampleMean": "虽然难以置信，但我真的还是20多岁。" },
-        { "level": "N2", "main": "V-た + きり", "meaning": "自从…就再没…/只有…", "example": "彼とは３年前に会ったきりです。", "exampleMean": "我和他自从3年前见过之后就再没见过了。" },
-        { "level": "N2", "main": "S(普通形) + どころか", "meaning": "别说…就连…/非但…反而…", "example": "貯金どころか、借金が増えました。", "exampleMean": "别说存钱了，债务反而增加了。" },
-        { "level": "N2", "main": "S(普通形) + に決まっている", "meaning": "一定… (口语)", "example": "それは嘘に決まっている。", "exampleMean": "那一定是谎言。" },
-        { "level": "N2", "main": "V-ます(stem) + ようがない", "meaning": "无法…/没法… (手段)", "example": "スマホが壊れて、連絡しようがありません。", "exampleMean": "手机坏了，没法联系。" },
-        { "level": "N2", "main": "S(普通形) + ものの", "meaning": "虽然…但是…", "example": "ジムに入会したものの、一度も行っていません。", "exampleMean": "虽然办了健身房的卡，但一次都没去过。" },
-        { "level": "N2", "main": "N/V-る + 際(に)", "meaning": "…时候 (正式)", "example": "私が死んだ際には、ハードディスクを破壊してください。", "exampleMean": "在我死的时候，请务必销毁我的硬盘。" },
-        { "level": "N2", "main": "N + に先立って", "meaning": "在…之前 (正式)", "example": "交際に先立って、年収を教えてください。", "exampleMean": "在交往之前，请告诉我你的年收入。" },
-        { "level": "N2", "main": "V-ます(stem) + 次第（しだい）", "meaning": "一…立刻…", "example": "給料が入り次第、返します。", "exampleMean": "工资一到账，我立刻还钱（常用借口）。" },
-        { "level": "N2", "main": "V-る + につれて", "meaning": "随着…", "example": "大人になるにつれて、夢が消えていきます。", "exampleMean": "随着长大成人，梦想也随之消失了。" },
-        { "level": "N2", "main": "Adj/N/V + だけに", "meaning": "正因为…所以更加…", "example": "期待していただけに、ガッカリしました。", "exampleMean": "正因为曾期待过，所以更加失望。" },
-        { "level": "N2", "main": "N + にしたら / にすれば", "meaning": "对…来说 (立场)", "example": "猫にしたら、人間はただの給餌機です。", "exampleMean": "对猫来说，人类不过是喂食器罢了。" },
-        { "level": "N2", "main": "V-る + ことだ", "meaning": "应该… (建议/忠告)", "example": "痩せたいなら、食べないことだ。", "exampleMean": "想瘦的话，就别吃。" },
-        { "level": "N2", "main": "S(普通形) + というより", "meaning": "与其说…不如说…", "example": "彼は歌手というより、コメディアンです。", "exampleMean": "与其说他是歌手，不如说他是喜剧演员。" },
-
-        // === N1 语法 (付费) ===
-        { "level": "N1", "main": "V-る + べく", "meaning": "为了… (书面目的)", "example": "神になるべく、プログラミングを始めました。", "exampleMean": "为了成为神，我开始学习编程。" },
-        { "level": "N1", "main": "N + ならいざしらず", "meaning": "如果是…还情有可原，但是…", "example": "子供ならいざしらず、大人がその服は犯罪です。", "exampleMean": "如果是小孩子也就算了，成年人穿那件衣服就是犯罪。" },
-        { "level": "N1", "main": "S(普通形) + かと思いきや", "meaning": "原以为…没料到… (意外)", "example": "告白かと思いきや、壺を売られました。", "exampleMean": "原以为他是要表白，结果他是要卖我壶。" },
-        { "level": "N1", "main": "N + 以外の何物でもない", "meaning": "正是…/不外乎是… (断定)", "example": "この残業は、拷問以外の何物でもない。", "exampleMean": "这加班，根本就是拷问。" },
-        { "level": "N1", "main": "N + あっての", "meaning": "有了…才有… (强调条件)", "example": "推しあっての私です。", "exampleMean": "正是有了我的偶像（推），才有了现在的我。" },
-        { "level": "N1", "main": "N + もさることながら", "meaning": "…自不必说，…更加…", "example": "彼女は顔もさることながら、資産もすごい。", "exampleMean": "她长得好看自不必说，资产更是惊人（阿姨我不想努力了）。" },
-        { "level": "N1", "main": "V-て + からというもの", "meaning": "自从…以后 (发生巨大变化)", "example": "結婚してからというもの、夫は抜け殻のようです。", "exampleMean": "自从结了婚，丈夫就像个空壳一样。" },
-        { "level": "N1", "main": "N + にかかわる", "meaning": "关系到…/影响到… (重大后果)", "example": "ハゲるかどうかは、男の尊厳にかかわる問題だ。", "exampleMean": "秃不秃头，是关系到男人尊严的问题。" },
-        { "level": "N1", "main": "N + を余儀（よぎ）なくされる", "meaning": "不得不…/被迫… (硬性局势)", "example": "不祥事で、辞任を余儀なくされました。", "exampleMean": "因为丑闻，被迫辞职了。" },
-        { "level": "N1", "main": "N + をおいて～ない", "meaning": "除了…没有… (唯一性)", "example": "世界を救えるのは、俺をおいて他にない。", "exampleMean": "能拯救世界的，除了我没别人（中二病晚期）。" },
-        { "level": "N1", "main": "N + にあるまじき", "meaning": "不该有的/不相称的 (严厉批评)", "example": "それはアイドルにあるまじき発言です。", "exampleMean": "那是作为偶像不该有的发言。" },
-        { "level": "N1", "main": "V-る + に（は）あたらない", "meaning": "用不着…/没什么值得…", "example": "驚くにはあたりません。私は天才ですから。", "exampleMean": "用不着惊讶。因为我是天才。" },
-        { "level": "N1", "main": "N/V-ます + こそすれ", "meaning": "虽然…但绝对不…", "example": "感謝こそすれ、恨むことなどありません。", "exampleMean": "我只有感谢，绝无怨恨（虽然眼神里充满了杀气）。" },
-        { "level": "N1", "main": "V-よう + が / と", "meaning": "无论…都…", "example": "世界がどうなろうが、知ったことではない。", "exampleMean": "无论世界变得怎样，都关我屁事。" },
-        { "level": "N1", "main": "N + と相まって", "meaning": "再加上…/与…配合", "example": "不細工な顔と相まって、性格も最悪です。", "exampleMean": "丑陋的脸庞再加上最差的性格（简直绝望）。" },
-        { "level": "N1", "main": "V-る + きらいがある", "meaning": "有…的倾向 (负面)", "example": "彼は話を盛るきらいがある。", "exampleMean": "他有夸大其词的毛病。" },
-        { "level": "N1", "main": "V-る + べからざる", "meaning": "禁止…的/不该…的 (修饰名词)", "example": "パソコンに「見るべからざるフォルダ」があります。", "exampleMean": "电脑里有一个“绝对不准看”的文件夹。" },
-        { "level": "N1", "main": "N + にかこつけて", "meaning": "借口…/托辞…", "example": "残業にかこつけて、不倫しています。", "exampleMean": "借口加班，其实在搞婚外情。" },
-        { "level": "N1", "main": "V-る + にかたくない", "meaning": "不难… (察觉/想象)", "example": "彼の絶望は、想像にかたくない。", "exampleMean": "他的绝望，不难想象。" },
-        { "level": "N1", "main": "V-る + に足る（たる）", "meaning": "值得…/足以…", "example": "信頼に足る情報は、ネットにはない。", "exampleMean": "网上没有值得信赖的信息。" },
-        { "level": "N1", "main": "N + に即して（そくして）", "meaning": "根据…/按照… (标准)", "example": "事実に即して、弁解してください。", "exampleMean": "请依据事实进行辩解。" },
-        { "level": "N1", "main": "N + をものともせず", "meaning": "不顾…/克服… (正面赞扬)", "example": "親の反対をものともせず、ニートになりました。", "exampleMean": "不顾父母的反对，我毅然成为了啃老族（用法错误但很真实）。" },
-        { "level": "N1", "main": "N + をよそに", "meaning": "无视…/不顾… (冷漠)", "example": "親の心配をよそに、遊びまくっています。", "exampleMean": "完全无视父母的担心，到处疯玩。" },
-        { "level": "N1", "main": "V-つ + V-つ", "meaning": "时而…时而… (互相动作)", "example": "満員電車で、押しつ押されつしています。", "exampleMean": "在满员电车里，大家挤来挤去。" },
-        { "level": "N1", "main": "N + めく", "meaning": "带有…气息/像…一样", "example": "別れ話が、脅迫めいてきました。", "exampleMean": "分手的话题，带上了一股威胁的味道。" },
-        { "level": "N1", "main": "Number/S + といったところだ", "meaning": "大概…/顶多… (程度不高)", "example": "私の年収？猫の餌代といったところです。", "exampleMean": "我的年收入？顶多也就是猫粮钱吧。" },
-        { "level": "N1", "main": "S(普通形) + とは", "meaning": "竟然… (惊讶)", "example": "彼が女だったとは。", "exampleMean": "没想到他竟然是女的（剧情反转）。" },
-        { "level": "N1", "main": "V-ん + ばかりに", "meaning": "显出…的样子/简直要…", "example": "「金を出せ」と言わんばかりに、手を出した。", "exampleMean": "他伸出手，脸上写满了“把钱交出来”。" },
-        { "level": "N1", "main": "Number + からある", "meaning": "…以上/多达… (强调数量多)", "example": "一億からある借金を背負っています。", "exampleMean": "我背负着多达一亿的债务。" },
-        { "level": "N1", "main": "V-る + くらいなら", "meaning": "与其…不如… (极端比较)", "example": "あいつと付き合うくらいなら、死んだほうがマシだ。", "exampleMean": "与其和那家伙交往，我还不如去死。" }
-    ],
-
     // === 👇 真题库 (升级版结构) 👇 ===
     quiz: {
         // === N5 真题 ===
@@ -206,23 +223,159 @@ const kiyoData = {
                 { "level": "N5", "question": "田中さんは　今　ご飯を　___　います。", "options": ["食べ", "食べて", "食べた", "食べる"], "answer": 1, "explain": "解析：正在进行时「～ています」，前接动词て形。" }
             ],
             reading: [
-                { 
-                    article: '今日は日曜日です。私はデパートへ行きました。', 
-                    question: '私はどこへ行きましたか？', 
-                    options: ['学校', '会社', 'デパート', '病院'], 
-                    answer: 2, 
-                    explain: '文中提到了去商场。' 
-                }
+               {
+    "level": "N5",
+    "question": "【文章】\nわたしは　毎朝　パンを　食べます。でも、けさは　ご飯を　食べました。\n\n【質問】\nわたしは　けさ　何を　食べましたか。",
+    "options": ["パン", "ご飯", "パンとご飯", "何も食べませんでした"],
+    "answer": 1,
+    "explain": "解析：文章说“每天早上吃面包。但是（でも），今天早上吃了饭（ご飯）”。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\nＡ「Ｂさん、日曜日に　いっしょに　映画を　見ませんか。」\nＢ「いいですね。行きましょう。」\n\n【質問】\n二人は　日曜日に　何を　しますか。",
+    "options": ["映画を見ます", "勉強をします", "買い物をします", "休みます"],
+    "answer": 0,
+    "explain": "解析：A邀请B看电影，B同意了（いいですね）。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\n私の　部屋に　机が　あります。机の　上に　猫の　写真が　あります。\n\n【質問】\n猫の　写真は　どこに　ありますか。",
+    "options": ["部屋の外", "机の下", "机の上", "机の中"],
+    "answer": 2,
+    "explain": "解析：文章明确提到“机の　上に（在桌子上）”。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\n田中さんは　昨日　図書館へ　行きました。図書館で　本を　借りました。\n\n【質問】\n田中さんは　昨日　どこへ　行きましたか。",
+    "options": ["デパート", "学校", "図書館", "郵便局"],
+    "answer": 2,
+    "explain": "解析：文中说“図書館へ　行きました”。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\nこの　店は　朝　９時から　夜　８時までです。\n\n【質問】\nこの　店は　何時に　終わりますか。",
+    "options": ["７時", "８時", "９時", "１０時"],
+    "answer": 1,
+    "explain": "解析：文章说“到晚上8点（8時まで）”。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\n山田先生は　背が　高いです。そして　髪が　長いです。\n\n【質問】\n山田先生は　どんな　人ですか。",
+    "options": ["背が高くて、髪が短いです", "背が低くて、髪が長いです", "背が高くて、髪が長いです", "背が低くて、髪が短いです"],
+    "answer": 2,
+    "explain": "解析：文中用了“高い”和“長い”。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\n「あしたは　雨ですから、サッカーは　しません。」\n\n【質問】\nどうして　サッカーを　しませんか。",
+    "options": ["日曜日だから", "雨だから", "嫌いだから", "暑いだから"],
+    "answer": 1,
+    "explain": "解析：文中提到“雨ですから（因为下雨）”。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\n私の　誕生日は　７月７日です。母の　誕生日は　７月９日です。\n\n【質問】\n母の　誕生日は　いつですか。",
+    "options": ["７月７日", "７月８日", "７月９日", "７月１０日"],
+    "answer": 2,
+    "explain": "解析：简单的时间读取题。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\nここは　教室です。日本語を　勉強します。\n\n【質問】\nここで　何を　しますか。",
+    "options": ["ご飯を食べます", "寝ます", "テレビを見ます", "勉強します"],
+    "answer": 3,
+    "explain": "解析：文中明确说明“日本語を勉強します”。"
+  },
+  {
+    "level": "N5",
+    "question": "【文章】\nりんごが　３つ　あります。みかんが　２つ　あります。\n\n【質問】\n全部で　いくつですか。",
+    "options": ["３つ", "４つ", "５つ", "６つ"],
+    "answer": 2,
+    "explain": "解析：3个苹果 + 2个橘子 = 5个（５つ）。"
+  },
+
             ],
             listening: [
-                { 
-                    audio: '', 
-                    script: '男の人と女の人が話しています...', 
-                    question: '男の人は何を買いますか？', 
-                    options: ['りんご', 'みかん', 'バナナ', 'ぶどう'], 
-                    answer: 0, 
-                    explain: '男人最后说了要买苹果。' 
-                }
+              {
+    "level": "N5",
+    "question": "男の人と女の人が話しています。男の人は　何時に　学校へ　行きますか。",
+    "audioScript": "女：太郎くん、今日　学校は　何時から？\n男：９時からです。\n女：じゃあ、何時に　家を　出るの？\n男：８時半に　出ます。",
+    "options": ["８時", "８時半", "９時", "９時半"],
+    "answer": 1,
+    "explain": "解析：男生说“9点开始上课”，但是“8点半出门（家を出る）”。问题是问几点去（出门）。"
+  },
+  {
+    "level": "N5",
+    "question": "男の人と女の人が話しています。二人は　これから　何を　しますか。",
+    "audioScript": "男：いい天気ですね。\n女：そうですね。散歩しませんか。\n男：いいですね。そのあと、映画を　見ましょう。\n女：はい、そうしましょう。",
+    "options": ["映画を見る", "散歩する", "ご飯を食べる", "勉強する"],
+    "answer": 1,
+    "explain": "解析：两人决定先去散歩（散歩しませんか），之后才看电影。问题是问“现在/接下来”做什么。"
+  },
+  {
+    "level": "N5",
+    "question": "男の人が店の人と話しています。男の人は　全部で　いくら　払いますか。",
+    "audioScript": "男：この　りんごを　３つ　ください。\n店員：はい、１つ　１００円ですから、３つで　３００円です。\n男：あ、みかんも　１つ　ください。\n店員：みかんは　５０円です。",
+    "options": ["３００円", "３５０円", "４００円", "４５０円"],
+    "answer": 1,
+    "explain": "解析：3个苹果300円 + 1个橘子50円 = 350円。"
+  },
+  {
+    "level": "N5",
+    "question": "教室で先生が話しています。学生は　机の上に　何を　出しますか。",
+    "audioScript": "先生：これから　テストを　します。机の上に　鉛筆と　消しゴムを　出してください。教科書や　ノートは　鞄に　入れてください。",
+    "options": ["鉛筆と教科書", "教科書とノート", "鉛筆と消しゴム", "消しゴムとノート"],
+    "answer": 2,
+    "explain": "解析：老师明确指示拿出“铅笔和橡皮”。书和笔记本要收起来。"
+  },
+  {
+    "level": "N5",
+    "question": "女の人が話しています。猫は　どこに　いますか。",
+    "audioScript": "女：あ、猫が　いますね。\n男：どこですか。机の上ですか。\n女：いいえ、椅子の下です。寝ていますよ。",
+    "options": ["机の上", "机の下", "椅子の上", "椅子の下"],
+    "answer": 3,
+    "explain": "解析：女生说“不，是在椅子下面（椅子の下）”。"
+  },
+  {
+    "level": "N5",
+    "question": "男の人と女の人が話しています。明日は　何日ですか。",
+    "audioScript": "男：今日は　３月３日ですね。\n女：いいえ、今日は　４日ですよ。\n男：あ、そうですか。じゃあ、誕生日は　明日ですね。",
+    "options": ["３日", "４日", "５日", "６日"],
+    "answer": 2,
+    "explain": "解析：今天是4号，明天生日，所以明天是5号。"
+  },
+  {
+    "level": "N5",
+    "question": "電話で男の人と女の人が話しています。男の人は　何を買って　帰りますか。",
+    "audioScript": "女：もしもし、今　駅？\n男：うん。何か　買って帰ろうか。\n女：牛乳が　ないから、お願い。\n男：パンは？\n女：パンは　あるから　大丈夫。",
+    "options": ["牛乳", "パン", "牛乳とパン", "何も買わない"],
+    "answer": 0,
+    "explain": "解析：女生说没牛奶了请买牛奶，面包还有所以不用买。"
+  },
+  {
+    "level": "N5",
+    "question": "男の人と女の人が話しています。女の人は　どうやって　会社へ　行きますか。",
+    "audioScript": "男：田中さんは、毎日　バスで　会社へ　行きますか。\n女：いいえ、バスは　遅いですから、電車で　行きます。\n男：駅から　会社までは？\n女：歩いて　５分です。",
+    "options": ["バス", "電車", "タクシー", "自転車"],
+    "answer": 1,
+    "explain": "解析：女生说因为巴士慢，所以坐电车（電車で　行きます）。"
+  },
+  {
+    "level": "N5",
+    "question": "男の人が図書館の人と話しています。男の人は　何冊　借りますか。",
+    "audioScript": "男：この本を　借りたいんですが。\n女：はい。お一人様　４冊までです。\n男：あ、ここには　５冊ありますね。\n女：じゃあ、１冊　減らしてください。\n男：はい、じゃあ　これを　やめます。",
+    "options": ["１冊", "３冊", "４冊", "５冊"],
+    "answer": 2,
+    "explain": "解析：本来拿了5本，因为限额4本，去掉1本，所以借4本。"
+  },
+  {
+    "level": "N5",
+    "question": "男の人と女の人が話しています。男の人の　鍵は　どれですか。",
+    "audioScript": "女：鍵が　ありませんね。どんな　鍵ですか。\n男：小さい　鍵です。\n女：これですか。\n男：いいえ、それは　古いです。私のは　新しいです。",
+    "options": ["大きくて新しい鍵", "小さくて新しい鍵", "大きくて古い鍵", "小さくて古い鍵"],
+    "answer": 1,
+    "explain": "解析：男生描述特征：小的（小さい）+ 新的（新しい）。"
+  },
             ]
         },
 
@@ -252,7 +405,162 @@ const kiyoData = {
                 { "level": "N4", "question": "山田さんは　英語を　話す　こと___　できます。", "options": ["を", "が", "に", "で"], "answer": 1, "explain": "解析：表示能力/可能，句型「V-る ことができます」。" },
                 { "level": "N4", "question": "母に　辞書を　買って　___。", "options": ["くれました", "あげました", "もらいました", "やりました"], "answer": 2, "explain": "解析：我“请”妈妈给我买了字典（我从妈妈那里得到买字典这个行为），用「もらいました」。" }
             ], 
-            reading: [], listening: []
+            reading: [
+{
+    "level": "N4",
+    "question": "【文章】\n（メール）\n鈴木さん、明日のパーティーですが、時間の変更があります。６時からではなく、７時からです。\n場所は変わりません。\n\n【質問】\nパーティーは　何時からですか。",
+    "options": ["６時", "７時", "８時", "９時"],
+    "answer": 1,
+    "explain": "解析：文章说“６時からではなく、７時からです（不是6点，是7点开始）”。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\n私は　いつも　バスで　会社へ　行きます。でも、天気が　いい　日は　自転車で　行きます。今日は　雨でした。\n\n【質問】\n私は　今日　何で　会社へ　行きましたか。",
+    "options": ["バス", "自転車", "電車", "タクシー"],
+    "answer": 0,
+    "explain": "解析：平时坐巴士，晴天骑车。今天是雨天，所以是平时的情况（巴士）。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\n（薬の説明）\nこの薬は、朝と夜のご飯のあとに、２つずつ飲んでください。\n\n【質問】\n１日に　全部で　いくつ　飲みますか。",
+    "options": ["２つ", "３つ", "４つ", "６つ"],
+    "answer": 2,
+    "explain": "解析：早晚各一次，每次2个。2 x 2 = 4个。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\n来週の日曜日、友達が遊びに来ます。部屋が汚いので、掃除しなければなりません。\n\n【質問】\nどうして　掃除しますか。",
+    "options": ["暇だから", "掃除が好きだから", "友達が来るから", "日曜日だから"],
+    "answer": 2,
+    "explain": "解析：因为朋友要来，且房间脏，所以必须打扫。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\n田中「すみません、駅へ行きたいんですが……」\n人「ああ、この道をまっすぐ行って、二つ目の角を右に曲がってください。」\n\n【質問】\n駅は　どこに　ありますか。",
+    "options": ["まっすぐ行って、左", "まっすぐ行って、右", "まっすぐ行って、すぐ", "ここ"],
+    "answer": 1,
+    "explain": "解析：文中指示“二つ目の角を右に（第二个路口向右）”。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\n弟は　私より　背が高いですが、私は　弟より　力が強いです。\n\n【質問】\n正しいのは　どれですか。",
+    "options": ["私は弟より背が高い", "弟は私より力が強い", "私は弟より力が弱い", "弟は私より背が高い"],
+    "answer": 3,
+    "explain": "解析：文章第一句“弟は私より背が高い（弟弟比我高）”。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\n昨日は　とても　寒かったので、コートを着て　出かけました。でも、今日は　暖かくて、コートは　いりません。\n\n【質問】\n今日は　コートを　着ますか。",
+    "options": ["着ます", "着ません", "昨日着ませんでした", "明日着ます"],
+    "answer": 1,
+    "explain": "解析：文中说“今日は...コートはいりません（今天不需要大衣）”。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\n（張り紙）\n「冷蔵庫のプリンを食べないでください。私の名前が書いてあります。田中」\n\n【質問】\nプリンは　誰のですか。",
+    "options": ["田中さんの", "冷蔵庫の", "みんなの", "鈴木さんの"],
+    "answer": 0,
+    "explain": "解析：田中留条说写着他的名字，所以是田中的。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\n日本人は　食事の　前に　「いただきます」と　言います。食事の　後は　「ごちそうさま」と　言います。\n\n【質問】\n「いただきます」は　いつ　言いますか。",
+    "options": ["食事の前", "食事の後", "寝る前", "起きた後"],
+    "answer": 0,
+    "explain": "解析：文中明确说明“食事の前に（吃饭前）”。"
+  },
+  {
+    "level": "N4",
+    "question": "【文章】\nこの漢字は　難しくて　読めません。先生に　読み方を　聞こうと　思います。\n\n【質問】\n「私」は　これから　何を　しますか。",
+    "options": ["漢字を書く", "先生に聞く", "辞書を買う", "家に帰る"],
+    "answer": 1,
+    "explain": "解析：意志形“聞こうと思います（打算问老师）”。"
+  },
+
+            ], 
+            listening: [
+{
+    "level": "N4",
+    "question": "男の人と女の人が話しています。男の人は　まず　何を　しなければなりませんか。",
+    "audioScript": "女：佐藤さん、会議の準備は　できましたか。\n男：はい、資料は　コピーしました。\n女：椅子は　並べましたか。\n男：あ、まだです。\n女：じゃあ、先に　それを　やってください。お茶は　そのあとで　いいです。",
+    "options": ["資料をコピーする", "椅子を並べる", "お茶を入れる", "掃除をする"],
+    "answer": 1,
+    "explain": "解析：资料已经印好了，椅子还没摆。女生指示“先にそれをやって（先做那个=摆椅子）”。"
+  },
+  {
+    "level": "N4",
+    "question": "男の人と女の人が話しています。明日の天気は　どうなりますか。",
+    "audioScript": "男：明日は　晴れるかなあ。\n女：天気予報を　見ましょう……あ、朝は　いい天気ですが、昼から　雨が　降るそうですよ。\n男：えー、じゃあ　傘が　いりますね。",
+    "options": ["一日中晴れ", "一日中雨", "晴れのち雨", "雨のち晴れ"],
+    "answer": 2,
+    "explain": "解析：早上天气好（晴），下午开始下雨 = 晴转雨（晴れのち雨）。"
+  },
+  {
+    "level": "N4",
+    "question": "男の人が店の人と話しています。男の人は　どの傘を　取りますか。",
+    "audioScript": "男：すみません、その　上の　傘を　見せてください。\n店員：これですか。黒いのですか。\n男：いいえ、その隣の、花のがらのです。\n店員：ああ、白いのですか。\n男：はい、それです。",
+    "options": ["上の黒い傘", "上の白い花の傘", "下の黒い傘", "下の白い花の傘"],
+    "answer": 1,
+    "explain": "解析：关键词：上面的（上の）+ 不是黑的（いいえ）+ 旁边有花纹的（花のがら）+ 白的。"
+  },
+  {
+    "level": "N4",
+    "question": "男の人と女の人が話しています。男の人は　どうして　遅れましたか。",
+    "audioScript": "女：田中さん、遅いですよ。\n男：すみません。駅までは　走ったんですが、電車が　来なかったんです。\n女：事故ですか。\n男：いいえ、風が　強くて、止まったんです。",
+    "options": ["寝坊したから", "道に迷ったから", "風で電車が止まったから", "事故があったから"],
+    "answer": 2,
+    "explain": "解析：男生解释原因：风大，电车停了。"
+  },
+  {
+    "level": "N4",
+    "question": "学校で先生が話しています。学生は　明日　何時までに　来なければなりませんか。",
+    "audioScript": "先生：明日は　バスで　美術館へ　行きます。バスは　８時半に　出ますから、１０分前には　集まってください。絶対に　遅れないように。",
+    "options": ["８時１０分", "８時２０分", "８時３０分", "８時４０分"],
+    "answer": 1,
+    "explain": "解析：8点半发车，要求提前10分钟集合，即8点20分。"
+  },
+  {
+    "level": "N4",
+    "question": "男の人と女の人が話しています。女の人は　これから　何をしますか。",
+    "audioScript": "男：あれ、田中さん、もう帰るの？\n女：ううん、ちょっと　郵便局へ　行ってくる。\n男：手紙を出すの？\n女：ううん、お金を　下ろしに。",
+    "options": ["家に帰る", "手紙を出す", "お金を下ろす", "買い物をする"],
+    "answer": 2,
+    "explain": "解析：女生否认了回家和寄信，目的是去邮局取钱（お金を下ろしに）。"
+  },
+  {
+    "level": "N4",
+    "question": "男の人と女の人が話しています。二人は　何時に　会いますか。",
+    "audioScript": "男：映画は　４時からだね。何時に　会おうか。\n女：３時半は　どう？\n男：うーん、昼ごはんを　いっしょに　食べない？\n女：いいね。じゃあ、２時間　早くしよう。\n男：わかった。駅前でね。",
+    "options": ["１時半", "２時", "３時半", "４時"],
+    "answer": 0,
+    "explain": "解析：原定3点半，男生提议吃午饭，于是提前2小时。3:30 - 2小时 = 1:30。"
+  },
+  {
+    "level": "N4",
+    "question": "デパートで女の人が話しています。女の人は　何階へ　行きますか。",
+    "audioScript": "女：すみません、子供の服は　どこですか。\n店員：７階に　ございます。\n女：おもちゃも　同じ　階ですか。\n店員：いいえ、おもちゃは　一つ　上です。\n女：そうですか。まずは　おもちゃを　見ます。",
+    "options": ["６階", "７階", "８階", "９階"],
+    "answer": 2,
+    "explain": "解析：童装在7楼，玩具在上一层（一つ上）即8楼。女生说先看玩具。"
+  },
+  {
+    "level": "N4",
+    "question": "男の人と女の人が話しています。一番　背が高いのは　誰ですか。",
+    "audioScript": "男：山田さんの　家族は　背が高いですね。\n女：ええ、父は　１８０センチです。\n男：山田さんは？\n女：私は　１７０センチで、弟と　同じです。母は　１６５センチです。",
+    "options": ["父", "母", "弟", "山田さん"],
+    "answer": 0,
+    "explain": "解析：父亲180（最高），我和弟弟170，母亲165。"
+  },
+  {
+    "level": "N4",
+    "question": "男の人と女の人がパーティーについて話しています。女の人は　何を持っていきますか。",
+    "audioScript": "男：来週のパーティー、飲み物は　僕が　持っていくよ。\n女：じゃあ、私は　おにぎりを　作るね。\n男：あ、鈴木さんが　寿司を　持ってくるそうだよ。\n女：そうなの？　じゃあ、デザートにする。ケーキを買っていくわ。",
+    "options": ["飲み物", "おにぎり", "寿司", "ケーキ"],
+    "answer": 3,
+    "explain": "解析：虽然一开始想做饭团，但听说铃木带寿司（主食重复），于是改成了甜点（蛋糕）。"
+  },
+
+            ]
         },
         
         // === N3 真题 ===
@@ -281,7 +589,159 @@ const kiyoData = {
                 { "level": "N3", "question": "社長は　会議室に　___。", "options": ["いらっしゃいます", "参ります", "申します", "お目にかかります"], "answer": 0, "explain": "解析：尊敬语，「いる」的尊敬语是「いらっしゃる」。其他选项均为自谦语。" },
                 { "level": "N3", "question": "ここで　タバコを　___　いけません。", "options": ["吸っては", "吸えば", "吸うなら", "吸うと"], "answer": 0, "explain": "解析：表示禁止，“不能...”，句型「V-ては いけません」。" }
             ], 
-            reading: [], listening: []
+            reading: [
+ {
+    "level": "N3",
+    "question": "【文章】\n最近、若者の「車離れ」が進んでいると言われています。お金がかかるし、電車やバスのほうが便利だと考える人が増えているからです。\n\n【質問】\nなぜ　若者は　車を　買わなくなりましたか。",
+    "options": ["車が嫌いだから", "免許が取れないから", "お金がかかるし、他の交通機関が便利だから", "車が売っていないから"],
+    "answer": 2,
+    "explain": "解析：文中给出了两个理由：费钱（お金がかかる）和公共交通便利（電車やバスのほうが便利）。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\n（社内メール）\n件名：会議室の予約について\n来週の月曜日に予定していた会議ですが、部長が出張のため、火曜日の午後に変更します。場所は第一会議室のままです。\n\n【質問】\n会議は　いつ　行われますか。",
+    "options": ["月曜日の午後", "火曜日の午前", "火曜日の午後", "来週の月曜日"],
+    "answer": 2,
+    "explain": "解析：邮件提到“火曜日の午後に変更します（变更为周二下午）”。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\n一人暮らしは自由でいいと言う人もいますが、私は寂しいと思います。病気になった時、誰も助けてくれないのが一番不安です。\n\n【質問】\n筆者が　一人暮らしで　一番　不安なことは　何ですか。",
+    "options": ["自由がないこと", "お金がないこと", "病気の時に助けがないこと", "友達がいないこと"],
+    "answer": 2,
+    "explain": "解析：文中提到“病気になった時...一番不安です”。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\n日本で家に入る時は、靴を脱ぐのが習慣です。しかし、最近は欧米スタイルの家も増えており、靴のまま入れる部屋もあるそうです。\n\n【質問】\n日本の家の習慣について、正しいものはどれですか。",
+    "options": ["昔から靴のまま入る", "絶対に靴を脱がなければならない", "基本的には脱ぐが、例外もある", "欧米スタイルが一番多い"],
+    "answer": 2,
+    "explain": "解析：主要习惯是脱鞋，但最近也有例外（欧米スタイル...あるそうです）。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\nＡ「このレストラン、美味しかったね。また来ようか。」\nＢ「うーん、味はいいけど、店員の態度がちょっとね……」\n\n【質問】\nＢは　この店について　どう　思っていますか。",
+    "options": ["味もサービスもいい", "味は悪いが、サービスはいい", "味はいいが、サービスは良くない", "二度と来たくない"],
+    "answer": 2,
+    "explain": "解析：B说“味はいい（味道好）”但是“店員の態度がちょっと（态度有点那个/不好）”。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\n運動不足を解消するために、ジムに通い始めました。最初は週に３回行っていましたが、今は忙しくて月に１回しか行けていません。\n\n【質問】\n今の　状況は　どうですか。",
+    "options": ["毎日行っている", "週に３回行っている", "月に１回行っている", "もう辞めた"],
+    "answer": 2,
+    "explain": "解析：文中最后说“今は...月に１回しか行けていません”。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\n私の趣味は切手集めです。子供の頃、父にもらった切手がきっかけで始めました。今では３０００枚以上持っています。\n\n【質問】\nなぜ　切手集めを　始めましたか。",
+    "options": ["父に切手をもらったから", "お金持ちになりたいから", "友達がやっていたから", "学校で勉強したから"],
+    "answer": 0,
+    "explain": "解析：文中提到契机是“父にもらった切手がきっかけで”。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\nこの製品は、水に濡れると壊れる恐れがあります。お風呂場や台所など、水を使う場所では使用しないでください。\n\n【質問】\nこの製品を　使っても　いい場所は　どこですか。",
+    "options": ["お風呂場", "台所", "プール", "寝室"],
+    "answer": 3,
+    "explain": "解析：题目问“可以”用的地方。文中列举了不可用的（水多的地方），排除法选寝室。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\n田中さんは、約束の時間に遅れる時は、必ず連絡をくれます。しかし、今日はまだ連絡がありません。何かあったのでしょうか。\n\n【質問】\n筆者は　なぜ　心配していますか。",
+    "options": ["田中さんが来ないから", "田中さんがいつも遅れるから", "連絡なしに遅れているから", "電話が壊れているから"],
+    "answer": 2,
+    "explain": "解析：田中平时迟到必联系，但今天“还没有联系”，所以担心。"
+  },
+  {
+    "level": "N3",
+    "question": "【文章】\n「成功の秘訣は、失敗を恐れないことだ」とよく言われます。しかし、失敗から何も学ばなければ、それはただの失敗です。\n\n【質問】\n筆者は　どう　考えていますか。",
+    "options": ["失敗してはいけない", "失敗を恐れてはいけない", "失敗から学ぶことが大切だ", "成功すれば失敗してもいい"],
+    "answer": 2,
+    "explain": "解析：转折之后是重点：如果不从失败中学习，那就是单纯的失败 -> 意味着要从失败中学习。"
+  },
+            ], listening: [
+{
+    "level": "N3",
+    "question": "会社で男の人と女の人が話しています。男の人は　このあと　何をしますか。",
+    "audioScript": "女：課長、明日の会議の資料ですが、これでよろしいでしょうか。\n男：うん、内容はいいね。でも、文字がちょっと小さいかな。\n女：あ、そうですか。直しますか。\n男：いや、僕がやっておくよ。君は　会議室の　予約を　確認して。",
+    "options": ["資料を直す", "会議室を予約する", "資料をコピーする", "会議室を確認する"],
+    "answer": 0,
+    "explain": "解析：这题有陷阱。男（课长）说“文字有点小”，女问“要改吗”，男说“我来做（僕がやっておく）”。所以男的做的是“修改资料”。女的去做预约确认。"
+  },
+  {
+    "level": "N3",
+    "question": "男の人と女の人が電話で話しています。二人は　いつ　会いますか。",
+    "audioScript": "男：もしもし、今日の約束だけど、電車が止まっちゃって、３時に着けそうにないんだ。\n女：えっ、どれくらい遅れる？\n男：３０分くらいかな。いや、やっぱり１時間くらい見ておいてほしい。\n女：わかった。じゃあ、近くのカフェで待ってるね。",
+    "options": ["３時", "３時半", "４時", "４時半"],
+    "answer": 2,
+    "explain": "解析：原定3点。男生说迟到30分...不对，还是看作1小时吧（1時間くらい見ておいて）。3点+1小时=4点。"
+  },
+  {
+    "level": "N3",
+    "question": "女の学生と先生が話しています。学生は　レポートの　何が　いけないと　言われましたか。",
+    "audioScript": "先生：このレポート、よく書けているけど、ここが惜しいね。\n学生：字の間違いですか。\n先生：いや、字は綺麗だよ。自分の意見が少ないんだよ。本の説明ばかりになっている。\n学生：すみません、書き直します。",
+    "options": ["字が汚いこと", "字の間違いが多いこと", "自分の意見が少ないこと", "説明が足りないこと"],
+    "answer": 2,
+    "explain": "解析：老师指出缺点：自己的意见太少（自分の意見が少ない），净是书本的说明。"
+  },
+  {
+    "level": "N3",
+    "question": "男の人が駅員と話しています。男の人は　どの鞄を　探していますか。",
+    "audioScript": "男：すみません、電車に鞄を忘れてしまって……。\n駅員：どんな鞄ですか。\n男：黒くて、大きくて、ポケットがついている鞄です。\n駅員：ポケットはいくつですか。\n男：外側に２つです。",
+    "options": ["黒くて小さい鞄", "黒くてポケットが１つの鞄", "黒くてポケットが２つの鞄", "黒くてポケットがない鞄"],
+    "answer": 2,
+    "explain": "解析：特征：黑、大、外侧有2个口袋（外側に２つ）。"
+  },
+  {
+    "level": "N3",
+    "question": "女の人がグラフについて説明しています。売上が　一番　増えたのは　何月ですか。",
+    "audioScript": "女：これは　今年の上半期の　売上グラフです。１月から３月までは　横ばいでしたが、４月に　新商品が出て　少し上がりました。そのあと、５月の連休で　一気に伸びて、６月は　下がりました。",
+    "options": ["３月", "４月", "５月", "６月"],
+    "answer": 2,
+    "explain": "解析：关键句：5月黄金周“一気に伸びて（一下子增长）”。"
+  },
+  {
+    "level": "N3",
+    "question": "男の人と女の人が話しています。女の人は　どうして　怒っていますか。",
+    "audioScript": "男：ごめんごめん、待った？\n女：遅いよ。もう１時間も待ったよ。\n男：ごめん、仕事が終わらなくて。\n女：それなら電話ぐらいしてよ。心配したんだから。",
+    "options": ["男の人が遅刻したから", "男の人が電話しなかったから", "男の人が仕事を辞めたから", "男の人が嘘をついたから"],
+    "answer": 1,
+    "explain": "解析：虽然迟到是原因之一，但女生强调“それなら電話ぐらいしてよ（那样的话至少打个电话啊）”，生气点在于没联系（担心）。N3常见考点。"
+  },
+  {
+    "level": "N3",
+    "question": "男の人と女の人が話しています。男の人は　女の人に　何を　頼みましたか。",
+    "audioScript": "男：あ、田中さん、今からコンビニ？\n女：うん、お弁当を買いに。\n男：じゃあ、ついでに　コーヒー　買ってきてくれない？　お金はあとで払うから。\n女：いいよ。ホット？アイス？\n男：今日は暑いからアイスで。",
+    "options": ["お弁当を買うこと", "お金を払うこと", "コーヒーを買うこと", "一緒にコンビニへ行くこと"],
+    "answer": 2,
+    "explain": "解析：男生请求“ついでにコーヒー買ってきてくれない？（顺便帮我买杯咖啡好吗）”。"
+  },
+  {
+    "level": "N3",
+    "question": "留守番電話のメッセージを聞いています。このあと、何をしなければなりませんか。",
+    "audioScript": "（電話）「はい、さくら歯科です。明日の３時に予約されている田中様ですね。実は、先生が急病で、明日の診察ができなくなりました。大変申し訳ありませんが、予約の変更をお願いしたいので、折り返しお電話をいただけますでしょうか。」",
+    "options": ["明日３時に病院へ行く", "病院へ電話をかける", "別の病院へ行く", "先生のお見舞いに行く"],
+    "answer": 1,
+    "explain": "解析：留言最后说“折り返しお電話をいただけますでしょうか（能请您回个电话吗）”。"
+  },
+  {
+    "level": "N3",
+    "question": "男の人と女の人が話しています。男の人は　このあと　まず　何をしますか。",
+    "audioScript": "女：ねえ、引っ越しの準備、終わった？\n男：本は全部箱に入れたよ。\n女：服は？\n男：まだ。今からやろうかと。\n女：先にカーテン外してよ。洗濯したいから。\n男：わかった。",
+    "options": ["本を箱に入れる", "服を片付ける", "カーテンを外す", "洗濯をする"],
+    "answer": 2,
+    "explain": "解析：女生指示“先に（首先）カーテン外して（把窗帘拆下来）”。"
+  },
+  {
+    "level": "N3",
+    "question": "二人がテレビ番組について話しています。女の人は　どうして　その番組が　好きですか。",
+    "audioScript": "男：昨日のドラマ、見た？\n女：見た見た。面白かったね。\n男：主人公の俳優、かっこいいよね。\n女：うん、でも私は、音楽がいいと思うな。ストーリーもいいけど、あの音楽を聞くと　感動するの。",
+    "options": ["俳優がかっこいいから", "ストーリーが面白いから", "音楽がいいから", "話題になっているから"],
+    "answer": 2,
+    "explain": "解析：虽然同意其他点，但强调“私は、音楽がいいと思う（我觉得音乐好）”。"
+  },
+            ]
         },
         
         // === N2 真题 (付费) ===
@@ -310,7 +770,160 @@ const kiyoData = {
                 { "level": "N2", "question": "お客様の　ご希望に　___　、プランを　変更しました。", "options": ["関して", "対して", "応じて", "とって"], "answer": 2, "explain": "解析：表示“响应/根据...（变化）”，使用「～に応じて」。" },
                 { "level": "N2", "question": "そんな　ことを　言おう　___　なら、彼に　殺される。", "options": ["こと", "もの", "わけ", "はず"], "answer": 1, "explain": "解析：表示假设某种极端的负面情况，“万一...的话”，句型「意向形＋ものなら」。" }
             ], 
-            reading: [], listening: []
+            reading: [
+{
+    "level": "N2",
+    "question": "【文章】\n人間は誰しも、自分の能力を過大評価する傾向がある。自分は平均より優れていると思い込みがちだが、実際には大半の人が「平均」である。この認知の歪みを自覚することが、成長の第一歩だ。\n\n【質問】\n筆者が　言いたいことは　何ですか。",
+    "options": ["人間はみんな天才だ", "自分の能力を正しく認識すべきだ", "平均的な人間になるべきだ", "自信を持つことが一番大切だ"],
+    "answer": 1,
+    "explain": "解析：文章指出人容易高估自己，并提出“自觉这种认知偏差是成长的第一步”，即要正确认识自己。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\n（ビジネスメール）\n先日ご提案いただいた企画書の件ですが、社内で検討いたしました結果、今回は見送らせていただくことになりました。ご期待に添えず申し訳ございません。\n\n【質問】\nこのメールの　内容は　何ですか。",
+    "options": ["企画が採用された", "企画が不採用になった", "企画を再検討する", "企画書を提出してほしい"],
+    "answer": 1,
+    "explain": "解析：「見送らせていただく」是委婉的拒绝/不采用。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\n現代社会では、沈黙はしばしば「気まずいもの」として扱われる。会話が途切れると、焦って何かを話そうとする。しかし、親しい間柄であれば、沈黙すらも心地よい時間となり得るのではないか。\n\n【質問】\n筆者は　沈黙について　どう　考えていますか。",
+    "options": ["常に避けるべきものだ", "会話が下手な証拠だ", "親しければ肯定的なものになり得る", "現代社会では許されないものだ"],
+    "answer": 2,
+    "explain": "解析：最后一句反问表示肯定：如果是亲密关系，沈黙也可以是舒适的时间。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\nある調査によると、電子書籍の利用者が急増している。場所を取らず、すぐに買える利便性が支持されているようだ。一方で、紙の本の手触りや匂いを愛するファンも根強く残っている。\n\n【質問】\n電子書籍が　増えている　理由は　何ですか。",
+    "options": ["紙の本より安いから", "目が疲れないから", "便利で場所を取らないから", "種類が多いから"],
+    "answer": 2,
+    "explain": "解析：文中提到理由是“場所を取らず、すぐに買える利便性”。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\n叱るということは、相手の成長を願うからこそできることだ。どうでもいい相手なら、わざわざエネルギーを使って叱ったりはしない。だから、上司に叱られたら、期待されていると思うべきだ。\n\n【質問】\nなぜ　叱ることが　期待の裏返しなのですか。",
+    "options": ["叱るのは楽しいから", "叱るのはエネルギーが必要だから", "叱らないと給料が下がるから", "相手が憎いから"],
+    "answer": 1,
+    "explain": "解析：文中说“特意消耗能量去责骂（わざわざエネルギーを使って...）”，暗示这是因为在意对方。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\n「忙しい」を口癖にする人がいる。確かに現代人は多忙だが、それをアピールしても有能だとは思われない。むしろ、時間管理ができない人だと思われる恐れがある。\n\n【質問】\n「忙しい」と　言うことについて、筆者の　考えは　どれですか。",
+    "options": ["頑張っている証拠だ", "有能な人の特徴だ", "言わないほうがいい", "周りに感謝される"],
+    "answer": 2,
+    "explain": "解析：笔者认为说忙碌会被认为“时间管理能力差”，所以倾向于否定（不应该说）。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\n旅の醍醐味は、予定通りにいかないことにある。道に迷ったり、言葉が通じなかったりするトラブルこそが、後になって一番の思い出になるものだ。\n\n【質問】\n筆者は　旅のトラブルを　どう　思っていますか。",
+    "options": ["避けるべきだ", "時間の無駄だ", "旅の楽しみの一つだ", "危険すぎる"],
+    "answer": 2,
+    "explain": "解析：文中说麻烦事（トラブル）才是“醍醐味（乐趣/妙处）”和“最好的回忆”。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\nテレワークの普及により、社員同士の雑談が減ってしまった。業務効率は上がったかもしれないが、新しいアイデアは、意外と無駄に思える雑談から生まれることが多い。\n\n【質問】\n筆者が　懸念（けねん）していることは　何ですか。",
+    "options": ["業務効率が下がること", "アイデアが生まれにくくなること", "社員がサボること", "通信費がかかること"],
+    "answer": 1,
+    "explain": "解析：笔者指出新点子往往来自杂谈，杂谈减少可能导致点子变少。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\n日本料理は「目で食べる」と言われるほど、盛り付けや器の美しさを重視する。旬の食材を使い、季節感を表現することも欠かせない要素だ。\n\n【質問】\n日本料理の　特徴として　述べられているのは　どれですか。",
+    "options": ["味が濃いこと", "量が非常に多いこと", "見た目や季節感を大切にすること", "手で食べること"],
+    "answer": 2,
+    "explain": "解析：文中提到“重视盛盘和器皿的美感（目で食べる）”和“表现季节感”。"
+  },
+  {
+    "level": "N2",
+    "question": "【文章】\n批判することは簡単だが、代案を出すことは難しい。会議で反対意見ばかり言う人がいるが、ではどうすればいいのかを提案できなければ、議論は前に進まない。\n\n【質問】\n会議で　大切なことは　何だと　言っていますか。",
+    "options": ["批判をしないこと", "大きな声で話すこと", "代案を提案すること", "早く終わらせること"],
+    "answer": 2,
+    "explain": "解析：文中批评了只反对不提建议的人，暗示提出“代案（替代方案）”才是推进讨论的关键。"
+  },
+
+            ], listening: [
+ {
+    "level": "N2",
+    "question": "上司と部下が話しています。部下は　このあと　何をしなければなりませんか。",
+    "audioScript": "上司：例のプロジェクトの件だけど、クライアントから返事は来た？\n部下：はい、おおむね了承とのことですが、予算について少し相談したいそうです。\n上司：そうか。じゃあ、来週のどこかで打ち合わせを設定してくれ。私は火曜と木曜なら空いているから。\n部下：わかりました。先方に連絡してみます。",
+    "options": ["予算を見直す", "企画書を修正する", "打ち合わせの日程を決める", "上司の予定を確認する"],
+    "answer": 2,
+    "explain": "解析：上司指示“打ち合わせを設定してくれ（安排一下会议）”。部下回答“先方に連絡してみます（我联系一下对方）”。"
+  },
+  {
+    "level": "N2",
+    "question": "男の人と女の人が、新商品について話しています。女の人は　何を　心配していますか。",
+    "audioScript": "男：今度の新商品、機能は最高だね。絶対売れるよ。\n女：そうですね。でも、機能が多すぎて、使い方が難しくないでしょうか。\n男：説明書を読めばわかるよ。\n女：最近の人は、あまり説明書を読みませんから……。",
+    "options": ["価格が高すぎること", "デザインが悪いこと", "使い方が難しいこと", "説明書がないこと"],
+    "answer": 2,
+    "explain": "解析：女生说“機能が多すぎて、使い方が難しくないでしょうか（功能太多，用法会不会太难了）”。"
+  },
+  {
+    "level": "N2",
+    "question": "ラジオで専門家が話しています。専門家は、健康のために　何が一番大切だと言っていますか。",
+    "audioScript": "専門家：健康のためには、運動や食事が大切だと言われますね。もちろんそれも重要ですが、現代人に一番足りないのは、休息です。どんなに良い食事をしても、睡眠不足では意味がありません。まずはしっかり寝ることです。",
+    "options": ["運動すること", "食事に気をつけること", "しっかり寝ること", "ストレスを溜めないこと"],
+    "answer": 2,
+    "explain": "解析：专家强调“現代人に一番足りないのは、休息です（现代人最缺的是休息）”，“まずはしっかり寝ること（首先要好好睡觉）”。"
+  },
+  {
+    "level": "N2",
+    "question": "大学で、女の学生と先生が話しています。女の学生は　これから　どうしますか。",
+    "audioScript": "学生：先生、卒論のテーマなんですが、この前のテーマだと資料が見つからなくて……。\n先生：うーん、じゃあ、範囲を少し広げてみたらどうだ？　時代を変えるとか。\n学生：そうですね。時代を変えると、比較対象が変わって面白そうです。やってみます。",
+    "options": ["テーマを完全に変える", "範囲を広げて時代を変える", "資料をもっと探す", "比較対象を減らす"],
+    "answer": 1,
+    "explain": "解析：接受老师建议“範囲を少し広げてみたら...時代を変えるとか”。"
+  },
+  {
+    "level": "N2",
+    "question": "男の人と女の人が話しています。男の人は　どうして　引越しをしたいのですか。",
+    "audioScript": "女：また引っ越すの？　今の部屋、駅から近くて便利じゃない。\n男：そうなんだけどさ、目の前にコンビニができたんだよ。\n女：便利でいいじゃない。\n男：それが、夜中もうるさくて、眠れないんだよ。",
+    "options": ["駅から遠いから", "部屋が狭いから", "家賃が高いから", "周りがうるさいから"],
+    "answer": 3,
+    "explain": "解析：虽然便利，但原因是“夜中もうるさくて（半夜也很吵）”。"
+  },
+  {
+    "level": "N2",
+    "question": "会社で男の人と女の人が話しています。男の人は　女の人に　何をしてほしいと言っていますか。",
+    "audioScript": "男：田中さん、ちょっといいかな。\n女：はい。\n男：来週のプレゼン、僕がやる予定だったけど、急な出張が入ってしまってね。\n女：え、まさか……。\n男：悪いけど、代わってもらえないかな。資料は全部できているから。",
+    "options": ["資料を作ってほしい", "出張に行ってほしい", "プレゼンを代わってほしい", "会議に出てほしい"],
+    "answer": 2,
+    "explain": "解析：男生请求“代わってもらえないかな（能替我一下吗）”，指做Pre。"
+  },
+  {
+    "level": "N2",
+    "question": "テレビでアナウンサーが話しています。今年の桜の開花が　早いのは　なぜですか。",
+    "audioScript": "アナウンサー：今年の桜は、例年より１週間ほど早く咲きそうです。２月は厳しい寒さが続きましたが、３月に入って急に気温が上がったことが影響しています。",
+    "options": ["２月が暖かかったから", "２月が寒かったから", "３月に気温が上がったから", "３月に雨が多かったから"],
+    "answer": 2,
+    "explain": "解析：虽然提到了2月冷，但导致早开花的原因是“３月に入って急に気温が上がったこと（进入3月气温急剧上升）”。"
+  },
+  {
+    "level": "N2",
+    "question": "男の人と女の人が、レストランで話しています。二人は　何を食べますか。",
+    "audioScript": "男：ここのハンバーグ、美味しいらしいよ。\n女：へえ。でも私、今ダイエット中だから、野菜サラダだけでいいわ。\n男：えっ、せっかくだから食べなよ。半分こしようか。\n女：うーん、それなら食べる。",
+    "options": ["ハンバーグ２つ", "野菜サラダ２つ", "ハンバーグ１つとサラダ", "ハンバーグを二人で分ける"],
+    "answer": 3,
+    "explain": "解析：男的提议“半分こしようか（分着吃吧）”，女的同意了。隐含点了汉堡排（可能还有沙拉，但选项重点是分汉堡排）。注意选项D最贴切。"
+  },
+  {
+    "level": "N2",
+    "question": "講演会で医者が話しています。この医者は、最近の患者について　どう思っていますか。",
+    "audioScript": "医者：最近は、インターネットで病気を調べてから来る患者さんが増えました。知識があるのは良いことですが、間違った情報を信じ込んでしまい、こちらの説明を聞かない人がいるのは困りものです。",
+    "options": ["勉強熱心で感心している", "知識があって助かっている", "間違った情報を信じる人がいて困っている", "インターネットを使わないでほしい"],
+    "answer": 2,
+    "explain": "解析：关键词“困りものです（令人头疼/难办）”，原因是信了错误信息且不听医生解释。"
+  },
+  {
+    "level": "N2",
+    "question": "男の人と女の人が話しています。女の人は　どうして　仕事を辞めたいのですか。",
+    "audioScript": "男：えっ、会社辞めるの？　人間関係？\n女：ううん、みんな良い人だよ。給料も悪くないし。\n男：じゃあ、なんで？\n女：毎日同じことの繰り返しで、成長できない気がして……。新しいことに挑戦したいの。",
+    "options": ["人間関係が悪いから", "給料が安いから", "仕事がつまらないから", "残業が多いから"],
+    "answer": 2,
+    "explain": "解析：理由是“同じことの繰り返し（重复同样的事）”、“成長できない（无法成长）”，即觉得工作无聊/没意义。"
+  },
+            ]
         },
         
         // === N1 真题 (付费) ===
@@ -339,7 +952,159 @@ const kiyoData = {
                 { "level": "N1", "question": "手術は　成功したが、まだ　楽観は　___　。", "options": ["許さない", "許されない", "許せない", "許そう"], "answer": 1, "explain": "解析：惯用搭配，「予断を許さない」或「楽観は許されない」，表示“不容.../不能...”。" },
                 { "level": "N1", "question": "家に　帰る　___　、倒れ込んで　しまった。", "options": ["そばから", "なり", "やいなや", "が早いか"], "answer": 1, "explain": "解析：表示前项动作刚一结束，紧接着发生后项（通常是意外的），主语通常为第三人称，句型「V-る＋なり」。" }
             ], 
-            reading: [], listening: []
+            reading: [
+{
+    "level": "N1",
+    "question": "【文章】\n真の優しさとは、相手の望むことをただ叶えることではない。時には相手のために、あえて厳しい態度を取ることも必要だ。それが誤解を招くことになったとしても、長い目で見れば相手の利益になることがある。\n\n【質問】\n筆者の考える「真の優しさ」とはどのようなものか。",
+    "options": ["常に相手を笑顔にすること", "相手の要求を全て拒否すること", "相手の将来を考え、厳しく接すること", "誤解されないように振る舞うこと"],
+    "answer": 2,
+    "explain": "解析：关键句是“時には相手のために、あえて厳しい態度を取る”。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\nグローバル化が進む現代において、英語力は必須のスキルとされる。しかし、自国の文化や歴史を語れなければ、いくら流暢な英語を話せても、国際人として尊敬されることはないだろう。\n\n【質問】\n国際人として必要なものは何か。",
+    "options": ["英語力だけ", "自国の文化への深い理解", "海外での生活経験", "複数の外国語を話す能力"],
+    "answer": 1,
+    "explain": "解析：强调了即使有英语能力，如果不能讲述自国文化（語れなければ），也不会被尊敬。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\n科学技術の進歩は、我々の生活を豊かにした一方で、新たな問題も引き起こした。便利さを追求するあまり、環境破壊や人間関係の希薄化を招いたことは否めない。進歩とは何か、立ち止まって考える時期に来ている。\n\n【質問】\n筆者の主張はどれか。",
+    "options": ["科学技術の進歩を止めるべきだ", "便利さこそが正義である", "進歩の負の側面も見つめ直すべきだ", "昔の生活に戻るべきだ"],
+    "answer": 2,
+    "explain": "解析：最后一句“立ち止まって考える時期に来ている（到了该停下来思考的时候了）”，指反思进步带来的负面（环境破坏等）。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\n「自由」という言葉は甘美な響きを持つが、そこには重い責任が伴う。誰の指図も受けないということは、全ての結果を自分で引き受けなければならないことを意味するからだ。\n\n【質問】\n筆者は「自由」をどう捉えているか。",
+    "options": ["何の縛りもない楽しいもの", "責任を伴う厳しいもの", "誰もが手に入れるべき権利", "避けるべき危険なもの"],
+    "answer": 1,
+    "explain": "解析：文中提到“重い責任が伴う（伴随着沉重的责任）”。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\n芸術は、必ずしも美しくある必要はない。見る人の心を揺さぶり、不快感さえ与えるものもまた芸術である。既存の価値観を破壊し、新しい視点を提供することこそが、芸術の役割だからだ。\n\n【質問】\n筆者にとっての芸術の役割とは何か。",
+    "options": ["人々を癒すこと", "世界を美しく飾ること", "常識を覆し、問いを投げかけること", "高値で売買されること"],
+    "answer": 2,
+    "explain": "解析：文中说“既存の価値観を破壊し...（破坏既有价值观...）”。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\n情報過多の時代において、我々に求められているのは情報を集める力ではない。膨大な情報の中から、自分にとって真に必要なものを選び取り、不要なものを捨てる「編集力」である。\n\n【質問】\n現代に必要な能力は何か。",
+    "options": ["より多くの情報を記憶する力", "情報を取捨選択する力", "情報を発信する力", "情報を隠す力"],
+    "answer": 1,
+    "explain": "解析：即“編集力”，文中解释为“選び取り、不要なものを捨てる（选取并舍弃）”。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\n人は「変われない」のではない。「変わりたくない」のだ。現状に不満があっても、未知の変化よりは、慣れ親しんだ不幸の方が安心できるという心理が働くからである。\n\n【質問】\n人が変われない本当の理由は何か。",
+    "options": ["能力が不足しているから", "環境が悪いから", "本心では変化を恐れているから", "周りが止めるから"],
+    "answer": 2,
+    "explain": "解析：文中指出心理机制是“未知の変化よりは...安心できる（与其改变不如维持现状更安心）”，即害怕改变。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\n歴史を学ぶ意味は、過去の事実を暗記することではない。過去の出来事がなぜ起きたのか、その背景にある因果関係を理解し、それを未来の選択に活かすことにある。\n\n【質問】\n歴史学習の本来の目的は何か。",
+    "options": ["テストで良い点を取ること", "偉人の名前を覚えること", "過去の教訓を未来に役立てること", "過去を美化すること"],
+    "answer": 2,
+    "explain": "解析：文中最后提到“未来の選択に活かすこと（活用到未来的选择中）”。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\n多様性（ダイバーシティ）の尊重が叫ばれているが、それは単にいろいろな人がいる状態を指すのではない。異なる意見がぶつかり合い、そこから新たな価値が生まれるプロセスを含んでこそ、真の多様性と言える。\n\n【質問】\n筆者が考える「真の多様性」とは。",
+    "options": ["争いを避けて仲良くすること", "異なる属性の人がただ集まること", "異質なもの同士の摩擦から創造が生まれること", "多数決で物事を決めること"],
+    "answer": 2,
+    "explain": "解析：文中强调“意見がぶつかり合い...新たな価値が生まれる（意见碰撞产生新价值）”。"
+  },
+  {
+    "level": "N1",
+    "question": "【文章】\n孤独は現代病のように扱われるが、創造的な活動には不可欠な要素だ。他者の視線や雑音から離れ、自己の内面と深く向き合う孤独な時間なくして、独創的なアイデアは生まれ得ない。\n\n【質問】\n筆者は孤独をどのように評価しているか。",
+    "options": ["社会から孤立する悪い状態", "精神衛生上良くないもの", "創造性の源となる必要な時間", "克服すべき課題"],
+    "answer": 2,
+    "explain": "解析：文中说“創造的な活動には不可欠（对于创造性活动不可或缺）”。"
+  }
+            ], listening: [
+{
+    "level": "N1",
+    "question": "ラジオで評論家が、AI（人工知能）について話しています。評論家は、AIの導入について　どのような考えを持っていますか。",
+    "audioScript": "評論家：AIの進化により、多くの仕事が奪われるという懸念があります。確かに単純作業は代替されるでしょう。しかし、それは人間がより創造的な活動に注力できる機会でもあります。AIを敵視するのではなく、共存の道を探るべきだというのが私の持論です。",
+    "options": ["仕事を奪うので反対だ", "創造的な活動もAIに任せるべきだ", "単純作業を守るべきだ", "共存して活用すべきだ"],
+    "answer": 3,
+    "explain": "解析：观点句：“AIを敵視するのではなく、共存の道を探るべきだ（不应敌视AI，应探寻共存之道）”。"
+  },
+  {
+    "level": "N1",
+    "question": "会社で、男の人と女の人が　商品のパッケージについて話しています。二人は　どの案に　決めましたか。",
+    "audioScript": "男：A案は派手で目立つけど、高級感に欠けるね。\n女：そうですね。B案はシンプルで上品ですが、少し地味かもしれません。\n男：じゃあ、B案をベースにして、ロゴの色だけA案のように明るくするのはどうかな。\n女：なるほど、それなら両方のいいとこ取りができますね。それでいきましょう。",
+    "options": ["A案", "B案", "A案とB案を折衷した案", "全く新しいC案"],
+    "answer": 2,
+    "explain": "解析：折衷方案，“B案をベースにして、ロゴの色だけ...（以B为基础，logo颜色改一下...）”。"
+  },
+  {
+    "level": "N1",
+    "question": "講演会で、作家が「書くこと」について話しています。この作家にとって、書くこととは　どのようなものですか。",
+    "audioScript": "作家：私にとって書くことは、呼吸するのと同じくらい自然なことです。苦しい時もありますが、書くことで自分自身を救済していると言ってもいい。誰かのために書くというよりは、自分の内面を整理し、確認する作業に近いのです。",
+    "options": ["読者を楽しませる手段", "生活のためにお金を稼ぐ手段", "自分自身を救い、整理する作業", "社会にメッセージを伝える義務"],
+    "answer": 2,
+    "explain": "解析：明确提到“自分自身を救済している（拯救自己）”、“自分の内面を整理し、確認する作業”。"
+  },
+  {
+    "level": "N1",
+    "question": "男の人と女の人が、あるニュースについて話しています。男の人は　このニュースを　どう評価していますか。",
+    "audioScript": "女：この企業買収のニュース、驚きましたね。\n男：まあ、表向きは業務提携ということになっていますが、実質的な救済合併ですよ。経営が悪化しているのは誰の目にも明らかでしたから、遅すぎたくらいです。\n女：やはりそうですか。",
+    "options": ["驚くべき素晴らしいニュースだ", "業務提携による前向きな合併だ", "経営悪化による救済で、対応が遅い", "予想外の出来事で判断できない"],
+    "answer": 2,
+    "explain": "解析：男的评价很辛辣：“実質的な救済合併（实质上的救济合并）”、“遅すぎたくらいです（甚至可以说是太晚了）”。"
+  },
+  {
+    "level": "N1",
+    "question": "大学の授業で、先生が「都市計画」について話しています。これからの都市に必要なものは　何だと言っていますか。",
+    "audioScript": "先生：かつての都市計画は、効率性や経済合理性が最優先されました。しかし、高齢化社会を迎えた今、求められているのは「居場所」です。公園や広場など、目的がなくても人々が集い、交流できる空間。これこそが、都市の孤独を癒やす鍵になるのです。",
+    "options": ["効率的な交通網", "経済活動の中心地", "人々が交流できる空間", "最新のテクノロジー"],
+    "answer": 2,
+    "explain": "解析：核心词是“居場所”、“人々が集い、交流できる空間”。"
+  },
+  {
+    "level": "N1",
+    "question": "会社で、上司と部下が　トラブルについて話しています。上司は　部下に　何を注意しましたか。",
+    "audioScript": "部下：部長、例のクレームの件、なんとか収まりました。\n上司：そうか、お疲れ。ただね、報告が遅いよ。君が一人で解決しようとする姿勢は買うけど、トラブルは初期対応が命だ。手遅れになる前に、まず一報を入れること。いいね。",
+    "options": ["クレーム処理が下手なこと", "一人で解決しようとしなかったこと", "報告が遅かったこと", "お客様に謝らなかったこと"],
+    "answer": 2,
+    "explain": "解析：上司虽然肯定了部下的努力，但主要批评是“報告が遅い（报告晚了）”、“まず一報を入れること（首先要汇报）”。"
+  },
+  {
+    "level": "N1",
+    "question": "テレビで、映画監督がインタビューに答えています。監督が　こだわった点は　どこですか。",
+    "audioScript": "監督：今回の作品では、ＣＧを極力使いませんでした。今の技術ならどんな映像でも作れますが、あえてアナログな手法に頼ることで、役者の生々しい感情や、現場の空気感をフィルムに焼き付けたかったんです。",
+    "options": ["最新のＣＧ技術を使った点", "ストーリーを複雑にした点", "ＣＧを使わず、リアリティを追求した点", "有名な役者を起用した点"],
+    "answer": 2,
+    "explain": "解析：重点在于“ＣＧを極力使いませんでした（极力不使用CG）”、“生々しい感情（鲜活的情感/真实感）”。"
+  },
+  {
+    "level": "N1",
+    "question": "男の人と女の人が、子供の教育について話しています。二人の意見が　一致しているのは　どんなことですか。",
+    "audioScript": "男：最近は英語教育が盛んだけど、やっぱり母国語での思考力が基本だと思うんだ。\n女：私もそう思うわ。深い思考は、使い慣れた言葉でないとできないもの。\n男：だよね。英語はあくまでツールだから、中身が空っぽじゃ意味がない。\n女：ええ、まずは日本語でしっかり考える力をつけさせましょう。",
+    "options": ["英語教育を早く始めるべきだ", "英語よりも母国語での思考力が重要だ", "日本語よりも英語を優先すべきだ", "学校教育に任せるべきだ"],
+    "answer": 1,
+    "explain": "解析：两人互相赞同（私もそう思う、だよね），核心观点是“母国語での思考力が基本”、“まずは日本語でしっかり考える力”。"
+  },
+  {
+    "level": "N1",
+    "question": "ラジオで、経済学者が「消費行動」について話しています。最近の消費者の特徴は　何だと言っていますか。",
+    "audioScript": "専門家：かつては「モノ」を所有することに価値がありましたが、今は「コト」、つまり体験に価値を見出す傾向が強まっています。高い車や時計を買うよりも、旅行やイベントにお金を使う。所有欲から体験欲へのシフト、これがキーワードです。",
+    "options": ["高級品を好んで買う", "お金を使わずに貯金する", "モノの所有より体験を重視する", "インターネットで買い物をする"],
+    "answer": 2,
+    "explain": "解析：关键词：“モノ（物）”转向“コト（事/体验）”、“所有欲から体験欲へのシフト（从所有欲向体验欲转变）”。"
+  },
+  {
+    "level": "N1",
+    "question": "会議で、議長が発言しています。議長は、このプロジェクトの現状を　どう認識していますか。",
+    "audioScript": "議長：プロジェクトは最終段階に入りましたが、予断を許さない状況です。スケジュールの遅れは取り戻しましたが、品質チェックで小さなバグが散見されます。納品まであと１週間、気を緩めずに徹底的な見直しをお願いします。",
+    "options": ["順調で問題はない", "スケジュールが大幅に遅れている", "油断できない状況だ", "失敗に終わった"],
+    "answer": 2,
+    "explain": "解析：惯用语“予断を許さない状況（不容乐观/不可大意的情况）”，指示“気を緩めずに（不可松懈）”。"
+  }
+            ]
         }
     }
 };
